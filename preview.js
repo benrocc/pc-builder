@@ -5,9 +5,18 @@ const GPU_VARIANTS = [
   "gpu-nvidia-founders-edition-geforce-rtx-5090",
   "gpu-zotac-rtx-5090-solid-oc"
 ];
-const PREVIEW_BOARD = "board-b850";
 const CASE_WIDTH = 478;
 const CASE_HEIGHT = 493;
+// The rear expansion slot to front fan span is 369 units in the case photo.
+const CASE_DEPTH_SCALE = 369 / 400;
+const BOARD_LAYOUTS = {
+  "board-b850": {
+    socket: [174, 154], dimmX: [224, 235, 246, 257], dimmY: 85, gpuY: 241
+  },
+  "board-gigabyte-z790-eagle-ax": {
+    socket: [172, 149], dimmX: [223, 232, 241, 250], dimmY: 101, gpuY: 240
+  }
+};
 const PREVIEW_ASSETS = {
   "case-903-black": {
     src: "https://gzhls.at/pix/d4/9c/d49c060fd322c1b9-n.webp",
@@ -21,10 +30,23 @@ const PREVIEW_ASSETS = {
     mask: [[.014, .004], [.93, .004], [1, .075], [1, .90], [.934, .958], [.91, 1],
       [.75, 1], [.68, .956], [.27, .956], [.19, 1], [.045, 1], [.014, .956]]
   },
-  [PREVIEW_BOARD]: {
+  "board-b850": {
     src: "https://storage-asset.msi.com/global/picture/product/product_1736159752859b0d59d04f539fee0f53b5742d9275.webp",
     credit: "https://www.msi.com/Motherboard/MAG-B850-TOMAHAWK-MAX-WIFI/Gallery",
     crop: [205, 46, 590, 708]
+  },
+  "board-gigabyte-z790-eagle-ax": {
+    src: "https://www.avadirect.com/Pictures/Big/17308506_1.png",
+    credit: "https://www.avadirect.com/Z790-EAGLE-AX-Intel-Z690-Chipset-LGA-1700-ATX-Motherboard/Product/17308506",
+    crop: [98, 43, 511, 628]
+  },
+  "cpu-3ZmNnQ": {
+    src: "https://diskloop.com/media/catalog/product/cache/c15eb52e76245814219ee020a67d27a9/s/r/srn7r.jpg",
+    credit: "https://diskloop.com/srn7r-intel-processor.html",
+    crop: [95, 97, 336, 402],
+    mask: [[.004, 0], [.31, .002], [.34, .015], [.36, .002], [.77, .002], [.79, .015],
+      [.82, .003], [.996, .004], [1, 1], [.82, 1], [.8, .986], [.78, 1],
+      [.35, 1], [.33, .987], [.31, 1], [0, 1]]
   },
   "cooler-pa": {
     src: "https://www.thermalright.com/wp-content/uploads/2021/10/PA120-SE-%E4%B8%BB%E5%9B%BE-3.jpg",
@@ -33,6 +55,25 @@ const PREVIEW_ASSETS = {
     basis: [[.135, .533], [.135, .033], [.866, .533]],
     mask: [[0, .014], [.21, .014], [.23, 0], [.54, .02], [.57, .043], [.97, .056],
       [1, .077], [1, .924], [.97, .944], [.57, .959], [.54, .986], [.22, .985], [.2, 1], [0, .982]]
+  },
+  "cooler-thermalright-aqua-elite-v3": {
+    src: "https://www.thermalright.com/wp-content/uploads/2023/07/3-2.jpg",
+    credit: "https://www.thermalright.com/product/aqua-elite-360-v3/",
+    crop: [198, 34, 1219, 1434],
+    mask: [[0, .23], [.013, .193], [.064, .161], [.275, .161], [.284, .05], [.299, .019],
+      [.345, .003], [.475, .003], [.508, .016], [.532, .053], [.54, .158], [.71, .156],
+      [.759, .185], [.797, .24], [.867, .23], [.909, .237], [.955, .266], [.992, .33],
+      [.994, .393], [.964, .425], [.994, .515], [1, .583], [.973, .643], [.985, .678],
+      [.932, .713], [.883, .71], [.839, .691], [.837, .758], [.805, .802], [.71, .874],
+      [.534, .881], [.53, .947], [.508, .982], [.473, .997], [.341, .998], [.301, .984],
+      [.28, .953], [.278, .881], [.174, .879], [.129, .842], [.063, .839], [.021, .823], [.002, .789]],
+    radiator: {
+      // The manufacturer's installed photo shows the topside mount and fan faces.
+      src: "https://www.thermalright.com/wp-content/uploads/2023/07/5-2.jpg",
+      crop: [0, 0, 1500, 479],
+      mask: [[0, 0], [1, 0], [1, .95], [.96, .98], [.055, 1], [0, .96]],
+      lengthMm: 396
+    }
   },
   "ram-32": {
     src: "https://assets.mmsrg.com/isr/166325/c1/-/ASSET_MP_172087586?align=center&cdx=536&cdy=402&cox=0&coy=0&ex=536&ey=402&format=jpg&quality=80&resizesource=&sp=yes&strip=yes&trim=&unsharp=1.5x1+0.7+0.02&x=536&y=402",
@@ -97,12 +138,10 @@ function drawPreviewLayer(context, asset, image, [x, y, width, height]) {
   context.restore();
 }
 
-function previewLayers(selection, assets) {
+function previewLayers(selection, assets, hideCooler) {
   const layers = [];
   const unavailable = [];
-  function add(part, bounds) {
-    if (!part) return;
-    const asset = assets[part.id];
+  function add(part, bounds, asset = assets[part.id]) {
     if (asset) layers.push({ part, asset, bounds });
     else if (!unavailable.includes(part.name)) unavailable.push(part.name);
   }
@@ -110,8 +149,9 @@ function previewLayers(selection, assets) {
   add(selection.case, [0, 0, CASE_WIDTH, CASE_HEIGHT]);
   const board = selection.motherboard;
   const gpu = selection.gpu;
-  const cooler = selection.cooler;
-  if (board?.id !== PREVIEW_BOARD) {
+  const cooler = hideCooler ? null : selection.cooler;
+  const layout = BOARD_LAYOUTS[board?.id];
+  if (!layout) {
     if (board) unavailable.push(board.name);
     return { layers, unavailable };
   }
@@ -119,15 +159,42 @@ function previewLayers(selection, assets) {
   // Rear of the case is at the left. These mount positions are aligned to the
   // rear I/O and first PCIe slot in the side-on product references.
   add(board, [44, 55, 244, 305]);
+  const [socketX, socketY] = layout.socket;
   const kitSticks = selection.ram.flatMap((kit) => Array(kit.sticks).fill(kit)).slice(0, 4);
-  const dimmX = { 1: [235], 2: [235, 257], 3: [235, 246, 257], 4: [224, 235, 246, 257] };
-  kitSticks.forEach((kit, index) => add(kit, [dimmX[kitSticks.length][index], 85, 7, 137]));
-  if (cooler) add(cooler, [111, 94, 125, 120]);
-  else if (selection.cpu) add(selection.cpu, [154, 134, 40, 40]);
-  // The visible span from the rear slot to the front fan is 369 canvas units
-  // in these photos. Montech rates that span at 400 mm.
-  if (gpu) add(gpu, [43, 241, gpu.lengthMm * 369 / 400, gpu.thicknessMm]);
-  return { layers, unavailable };
+  const dimmSlots = [[], [1], [1, 3], [1, 2, 3], [0, 1, 2, 3]][kitSticks.length];
+  kitSticks.forEach((kit, index) => add(kit, [layout.dimmX[dimmSlots[index]], layout.dimmY, 7, 137]));
+  if (selection.cpu && !assets[cooler?.id] && selection.cpu.socket === board.socket) {
+    add(selection.cpu, [socketX - 18.75, socketY - 22.5, 37.5, 45]);
+  }
+  const pump = assets[cooler?.id];
+  const radiator = pump?.radiator;
+  let tubes;
+  if (radiator) {
+    const radiatorWidth = radiator.lengthMm * CASE_DEPTH_SCALE;
+    add(cooler, [51, 23, radiatorWidth, 70], { ...radiator, credit: pump.credit });
+    tubes = { radiatorX: 51 + radiatorWidth, pumpX: socketX + 40, pumpY: socketY };
+    add(cooler, [socketX - 34, socketY - 49, 78, 92]);
+  } else if (cooler) {
+    add(cooler, [socketX - 63, socketY - 60, 125, 120]);
+  }
+  if (gpu) add(gpu, [43, layout.gpuY, gpu.lengthMm * CASE_DEPTH_SCALE, gpu.thicknessMm]);
+  return { layers, unavailable, tubes };
+}
+
+function drawCoolerTubes(context, { radiatorX, pumpX, pumpY }) {
+  context.save();
+  context.lineCap = "round";
+  for (const offset of [0, 11]) {
+    context.beginPath();
+    context.moveTo(radiatorX - 13 - offset, 51);
+    context.bezierCurveTo(radiatorX + 53 - offset, 147, radiatorX - 72, pumpY + 56 - offset, pumpX, pumpY + 12 - offset);
+    for (const [color, width] of [["#0d0e10", 10], ["#2a2c2f", 7], ["#3c3e41", 2]]) {
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.stroke();
+    }
+  }
+  context.restore();
 }
 
 function createBuildPreview(assets, lookupPart, seatPart) {
@@ -139,14 +206,19 @@ function createBuildPreview(assets, lookupPart, seatPart) {
   const controls = document.getElementById("preview-options");
   const caseSelect = document.getElementById("preview-case");
   const gpuSelect = document.getElementById("preview-gpu");
+  const cpuToggle = document.getElementById("preview-hide-cooler");
   let revision = 0;
+  let activeSelection;
 
   for (const [select, ids] of [[caseSelect, CASE_VARIANTS], [gpuSelect, GPU_VARIANTS]]) {
     ids.forEach((id) => select.add(new Option(lookupPart(id).short, id)));
     select.addEventListener("change", () => seatPart(select.value));
   }
 
-  return async function renderPreview(selection) {
+  cpuToggle.addEventListener("change", () => renderPreview(activeSelection));
+
+  async function renderPreview(selection) {
+    activeSelection = selection;
     const currentRevision = ++revision;
     const caseId = selection.case?.id;
     const gpuId = selection.gpu?.id;
@@ -154,6 +226,11 @@ function createBuildPreview(assets, lookupPart, seatPart) {
     controls.hidden = !hasCaseOptions;
     caseSelect.value = CASE_VARIANTS.includes(caseId) ? caseId : "";
     gpuSelect.value = GPU_VARIANTS.includes(gpuId) ? gpuId : "";
+    const layout = BOARD_LAYOUTS[selection.motherboard?.id];
+    const canHideCooler = Boolean(assets[caseId] && layout && assets[selection.cpu?.id]
+      && assets[selection.cooler?.id] && selection.cpu.socket === selection.motherboard.socket);
+    cpuToggle.parentElement.hidden = !canHideCooler;
+    if (!canHideCooler) cpuToggle.checked = false;
 
     const gpu = selection.gpu;
     const limit = selection.case?.gpuClear;
@@ -181,7 +258,7 @@ function createBuildPreview(assets, lookupPart, seatPart) {
     }
 
     message.textContent = "Loading product images…";
-    const { layers, unavailable } = previewLayers(selection, assets);
+    const { layers, unavailable, tubes } = previewLayers(selection, assets, cpuToggle.checked);
     const images = await Promise.all(layers.map(({ asset }) => loadPreviewImage(asset.src)));
     if (currentRevision !== revision) return;
     if (!images[0]) {
@@ -193,13 +270,16 @@ function createBuildPreview(assets, lookupPart, seatPart) {
     context.setTransform(canvas.width / CASE_WIDTH, 0, 0, canvas.height / CASE_HEIGHT, 0, 0);
     context.clearRect(0, 0, CASE_WIDTH, CASE_HEIGHT);
     const shown = new Map();
-    const boardFailed = selection.motherboard?.id === PREVIEW_BOARD && !images[1];
+    const boardFailed = Boolean(layout && !images[1]);
+    const pump = assets[selection.cooler?.id];
+    const showTubes = tubes && layers.every(({ part }, index) => part.cat !== "cooler" || images[index]);
     layers.forEach(({ part, asset, bounds }, index) => {
       if (boardFailed && index > 1) return;
       if (!images[index]) {
         if (!unavailable.includes(part.name)) unavailable.push(part.name);
         return;
       }
+      if (showTubes && asset === pump) drawCoolerTubes(context, tubes);
       drawPreviewLayer(context, asset, images[index], bounds);
       shown.set(part.name, asset.credit);
     });
@@ -210,9 +290,13 @@ function createBuildPreview(assets, lookupPart, seatPart) {
     const needsBoard = !selection.motherboard && (gpu || selection.cooler || selection.ram.length || selection.cpu);
     const notices = [];
     if (needsBoard) notices.push("Add a motherboard to show installed parts.");
-    if (selection.motherboard && (boardFailed || selection.motherboard.id !== PREVIEW_BOARD)) {
-      notices.push("The case is shown empty until this motherboard has a verified layout.");
+    if (selection.motherboard && (boardFailed || !layout)) {
+      notices.push(boardFailed
+        ? "The motherboard image couldn’t load."
+        : "This motherboard needs mounting positions before it can be shown installed.");
     }
+    if (!boardFailed && showTubes) notices.push("Top-mounted radiator. Tube routing is approximate.");
+    if (canHideCooler && shown.has(selection.cooler.name)) notices.push(selection.cpu.short + " is under the cooler.");
     if (unavailable.length) notices.push("Preview unavailable for " + unavailable.join(", ") + ".");
     coverage.textContent = notices.join(" ");
     coverage.hidden = !notices.length;
@@ -230,5 +314,6 @@ function createBuildPreview(assets, lookupPart, seatPart) {
       links.append(item);
     }
     sources.hidden = false;
-  };
+  }
+  return renderPreview;
 }

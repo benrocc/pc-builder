@@ -213,6 +213,13 @@
     }
     .preview-options[hidden], #preview-canvas[hidden] { display: none; }
     .preview-options label { min-width: 0; color: var(--muted); font-size: 12px; }
+    .preview-options .preview-layer-toggle:not([hidden]) {
+      display: flex;
+      align-items: center;
+      align-self: end;
+      gap: 6px;
+      min-height: 34px;
+    }
     .preview-options select {
       display: block;
       width: 100%;
@@ -336,6 +343,7 @@
         <div class="preview-options" id="preview-options" hidden>
           <label>Case color<select id="preview-case"><option value="" disabled>Choose a color</option></select></label>
           <label>Graphics card<select id="preview-gpu"><option value="" disabled>Choose a preview model</option></select></label>
+          <label class="preview-layer-toggle" hidden><input type="checkbox" id="preview-hide-cooler">Hide cooler to see CPU</label>
         </div>
         <div id="bay" aria-label="Case bay, drop parts here">
           <canvas id="preview-canvas" width="956" height="986" role="img" hidden></canvas>
@@ -365,9 +373,9 @@
       <div id="bill" aria-live="polite"></div>
     </aside>
   </div>
-  <script src="preview.js"></script>
+  <script src="preview.js?v=2"></script>
   <script src="prices.js"></script>
-  <script src="part-photos.js"></script>
+  <script src="part-photos.js?v=2"></script>
   <script>
     const CATS = [
       { id: "case", label: "Case", hint: "GPU clearance checks are available for the AIR 903 MAX and H5 Flow." },
@@ -621,7 +629,7 @@
       {"id":"board-msi-mag-b650-tomahawk-wifi","cat":"motherboard","rank":30,"name":"MSI MAG B650 TOMAHAWK WIFI","short":"MSI MAG B650 TOMAHAWK…","socket":"AM5","form":"atx","spec":"ATX · AM5 · DDR5","mem":"DDR5"},
       {"id":"board-msi-pro-b760-p-wifi-ddr4","cat":"motherboard","rank":31,"name":"MSI PRO B760-P WIFI DDR4","short":"MSI PRO B760-P WIFI D…","socket":"LGA1700","form":"atx","spec":"ATX · LGA1700 · DDR4","mem":"DDR4"},
       {"id":"board-asus-rog-strix-b550-f-gaming-wifi-ii","cat":"motherboard","rank":32,"name":"Asus ROG STRIX B550-F GAMING WIFI II","short":"Asus ROG STRIX B550-F…","socket":"AM4","form":"atx","spec":"ATX · AM4 · DDR4","mem":"DDR4"},
-      {"id":"board-gigabyte-z790-eagle-ax","cat":"motherboard","rank":33,"name":"Gigabyte Z790 EAGLE AX","short":"Gigabyte Z790 EAGLE AX","socket":"LGA1700","form":"atx","spec":"ATX · LGA1700 · DDR type not printed"},
+      {"id":"board-gigabyte-z790-eagle-ax","cat":"motherboard","rank":33,"name":"Gigabyte Z790 EAGLE AX","short":"Gigabyte Z790 EAGLE AX","socket":"LGA1700","form":"atx","mem":"DDR5","spec":"ATX · LGA1700 · DDR5"},
       {"id":"board-gigabyte-b850m-eagle-wifi6e-ice","cat":"motherboard","rank":34,"name":"Gigabyte B850M EAGLE WIFI6E ICE","short":"Gigabyte B850M EAGLE…","socket":"AM5","form":"matx","spec":"Micro ATX · AM5 · DDR5","mem":"DDR5"},
       {"id":"board-msi-mag-x870-tomahawk-wifi","cat":"motherboard","rank":35,"name":"MSI MAG X870 TOMAHAWK WIFI","short":"MSI MAG X870 TOMAHAWK…","socket":"AM5","form":"atx","spec":"ATX · AM5 · DDR5","mem":"DDR5"},
       {"id":"board-gigabyte-x870-aorus-elite-wifi7-ice","cat":"motherboard","rank":36,"name":"Gigabyte X870 AORUS ELITE WIFI7 ICE","short":"Gigabyte X870 AORUS E…","socket":"AM5","form":"atx","spec":"ATX · AM5 · DDR5","mem":"DDR5"},
@@ -851,7 +859,7 @@
       {"id":"case-zalman-s4","cat":"case","rank":87,"name":"Zalman S4","short":"Zalman S4","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-silverstone-alta-d1","cat":"case","rank":88,"name":"Silverstone ALTA D1","short":"Silverstone ALTA…","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
       {"id":"cooler-arctic-liquid-freezer-iii-pro-360","cat":"cooler","rank":2,"name":"ARCTIC Liquid Freezer III Pro 360","short":"ARCTIC Liquid Freezer…","spec":"360 mm · 600 - 3000 RPM"},
-      {"id":"cooler-thermalright-aqua-elite-v3","cat":"cooler","rank":3,"name":"Thermalright Aqua Elite V3","short":"Thermalright Aqua Eli…","spec":"360 mm · 1500 RPM"},
+      {"id":"cooler-thermalright-aqua-elite-v3","cat":"cooler","rank":3,"name":"Thermalright Aqua Elite 360 V3","short":"Aqua Elite 360 V3","sockets":["LGA1700","LGA1851","AM4","AM5"],"spec":"Liquid · 360 mm · 1500 RPM"},
       {"id":"cooler-cooler-master-hyper-212-black-edition","cat":"cooler","rank":4,"name":"Cooler Master Hyper 212 Black Edition","short":"Cooler Master Hyper 2…","spec":"Air · 650 - 2000 RPM"},
       {"id":"cooler-arctic-liquid-freezer-iii-pro-a-rgb-360","cat":"cooler","rank":5,"name":"ARCTIC Liquid Freezer III Pro A-RGB 360","short":"ARCTIC Liquid Freezer…","spec":"360 mm · 600 - 3000 RPM"},
       {"id":"cooler-thermalright-assassin-x-120-refined-se","cat":"cooler","rank":6,"name":"Thermalright Assassin X 120 Refined SE","short":"Thermalright Assassin…","spec":"Air · 1550 RPM"},
