@@ -17,6 +17,22 @@ const BOARD_LAYOUTS = {
     socket: [172, 149], dimmX: [223, 232, 241, 250], dimmY: 101, gpuY: 240
   }
 };
+const BOARD_SIZES = { atx: [244, 305], eatx: [277, 305], matx: [244, 244], itx: [170, 170] };
+// Rear-top, front-top, and rear-bottom of the motherboard footprint in
+// selected case photos. Points use the original image's normalized coordinates.
+const CASE_PHOTO_PLANES = {
+  "case-h5": [[.255, .365], [.53, .285], [.25, .705]],
+  "case-montech-xr": [[.25, .30], [.53, .225], [.25, .695]],
+  "case-phanteks-xt-pro": [[.285, .29], [.58, .19], [.28, .74]],
+  "case-lian-li-vector-v100r": [[.29, .31], [.62, .23], [.285, .73]],
+  "case-lian-li-o11-vision-compact": [[.33, .35], [.61, .25], [.33, .79]],
+  "case-nzxt-h5-flow-2024": [[.30, .255], [.60, .22], [.30, .61]],
+  "case-lian-li-o11-dynamic-mini-v2": [[.315, .28], [.625, .19], [.315, .77]],
+  "case-lian-li-o11d-evo-rgb": [[.29, .305], [.56, .24], [.285, .79]],
+  "case-corsair-3500x-rs-r-argb": [[.34, .29], [.60, .245], [.34, .715]],
+  "case-nzxt-h9-flow-2025": [[.28, .37], [.54, .29], [.275, .73]],
+  "case-lian-li-lancool-216": [[.35, .32], [.505, .265], [.35, .66]]
+};
 const PREVIEW_ASSETS = {
   "case-903-black": {
     src: "https://gzhls.at/pix/d4/9c/d49c060fd322c1b9-n.webp",
@@ -102,19 +118,56 @@ function loadPreviewImage(src) {
     const pending = new Promise((resolve) => {
       const image = new Image();
       image.referrerPolicy = "no-referrer";
-      image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
+      const timer = setTimeout(() => resolve(null), 8000);
+      image.onload = () => { clearTimeout(timer); resolve(image); };
+      image.onerror = () => { clearTimeout(timer); resolve(null); };
       image.src = src;
     });
     previewImages.set(src, pending);
+    pending.then((image) => { if (!image) previewImages.delete(src); });
   }
   return previewImages.get(src);
 }
 
+function catalogPreview(part, photos) {
+  const photo = photos[part?.id];
+  const cutout = PHOTO_CUTOUTS[part?.id];
+  return photo && cutout ? { ...photo, cutout } : null;
+}
+
+function containPhoto(width, height, [x, y, maxWidth, maxHeight]) {
+  const scale = Math.min(maxWidth / width, maxHeight / height);
+  const fittedWidth = width * scale;
+  const fittedHeight = height * scale;
+  return [x + (maxWidth - fittedWidth) / 2, y + (maxHeight - fittedHeight) / 2, fittedWidth, fittedHeight];
+}
+
 function drawPreviewLayer(context, asset, image, [x, y, width, height]) {
   context.save();
+  const crop = asset.cutout?.[0];
+  const [sx, sy, sw, sh] = crop
+    ? crop.map((value, index) => value * (index % 2 === 0 ? image.naturalWidth : image.naturalHeight))
+    : asset.crop || [0, 0, image.naturalWidth, image.naturalHeight];
+  const rotate = asset.vertical && sw > sh;
+  if (asset.cutout) {
+    [x, y, width, height] = containPhoto(rotate ? sh : sw, rotate ? sw : sh, [x, y, width, height]);
+  }
   context.translate(x, y);
   context.scale(width, height);
+  if (rotate) {
+    context.translate(1, 0);
+    context.rotate(Math.PI / 2);
+  }
+  if (asset.cutout?.length > 1) {
+    const [, maskWidth, maskHeight, encoded] = asset.cutout;
+    const runs = atob(encoded);
+    context.beginPath();
+    for (let i = 0; i < runs.length; i += 4) {
+      context.rect(runs.charCodeAt(i) / maskWidth, runs.charCodeAt(i + 1) / maskHeight,
+        runs.charCodeAt(i + 2) / maskWidth, runs.charCodeAt(i + 3) / maskHeight);
+    }
+    context.clip();
+  }
   if (asset.mask) {
     context.beginPath();
     asset.mask.forEach(([px, py], i) => i ? context.lineTo(px, py) : context.moveTo(px, py));
@@ -132,53 +185,75 @@ function drawPreviewLayer(context, asset, image, [x, y, width, height]) {
     context.transform(a, b, c, d, e, f);
     context.drawImage(image, 0, 0, 1, 1);
   } else {
-    const [sx, sy, sw, sh] = asset.crop || [0, 0, image.naturalWidth, image.naturalHeight];
     context.drawImage(image, sx, sy, sw, sh, 0, 0, 1, 1);
   }
   context.restore();
 }
 
-function previewLayers(selection, assets, hideCooler) {
+function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) {
   const layers = [];
-  const unavailable = [];
-  function add(part, bounds, asset = assets[part.id]) {
+  const generic = (part) => catalogPreview(part, photos);
+  function add(part, bounds, asset = assets[part?.id] || generic(part)) {
     if (asset) layers.push({ part, asset, bounds });
-    else if (!unavailable.includes(part.name)) unavailable.push(part.name);
   }
 
-  add(selection.case, [0, 0, CASE_WIDTH, CASE_HEIGHT]);
   const board = selection.motherboard;
   const gpu = selection.gpu;
   const cooler = hideCooler ? null : selection.cooler;
-  const layout = BOARD_LAYOUTS[board?.id];
-  if (!layout) {
-    if (board) unavailable.push(board.name);
-    return { layers, unavailable };
+  const [boardWidth, boardHeight] = BOARD_SIZES[board?.form] || BOARD_SIZES.atx;
+  const layout = BOARD_LAYOUTS[board?.id] || {
+    socket: [44 + boardWidth * .51, 55 + boardHeight * .32],
+    dimmX: [.74, .78, .82, .86].map((position) => 44 + boardWidth * position),
+    dimmY: 65,
+    gpuY: 55 + boardHeight * (board?.form === "itx" ? .91 : .60)
+  };
+  add(board, [44, 55, boardWidth, boardHeight]);
+  const [socketX, socketY] = layout.socket;
+
+  let slotOffset = 0;
+  const stickCount = Math.min(selection.ram.reduce((total, kit) => total + kit.sticks, 0), 4);
+  const dimmSlots = [[], [1], [1, 3], [1, 2, 3], [0, 1, 2, 3]][stickCount];
+  for (const kit of selection.ram) {
+    if (assets[kit.id]) {
+      for (const slot of dimmSlots.slice(slotOffset, slotOffset + kit.sticks)) {
+        add(kit, [layout.dimmX[slot], layout.dimmY, 7, 137]);
+      }
+    } else {
+      const cutout = generic(kit);
+      const slot = dimmSlots[slotOffset];
+      if (cutout && slot !== undefined) {
+        const width = kit.sticks === 1 ? 21 : 35;
+        add(kit, [layout.dimmX[slot] - 6, layout.dimmY, width, 136], { ...cutout, vertical: true });
+      }
+    }
+    slotOffset += kit.sticks;
   }
 
-  // Rear of the case is at the left. These mount positions are aligned to the
-  // rear I/O and first PCIe slot in the side-on product references.
-  add(board, [44, 55, 244, 305]);
-  const [socketX, socketY] = layout.socket;
-  const kitSticks = selection.ram.flatMap((kit) => Array(kit.sticks).fill(kit)).slice(0, 4);
-  const dimmSlots = [[], [1], [1, 3], [1, 2, 3], [0, 1, 2, 3]][kitSticks.length];
-  kitSticks.forEach((kit, index) => add(kit, [layout.dimmX[dimmSlots[index]], layout.dimmY, 7, 137]));
-  if (selection.cpu && !assets[cooler?.id] && selection.cpu.socket === board.socket) {
+  if (selection.cpu && !cooler && selection.cpu.socket === board?.socket) {
     add(selection.cpu, [socketX - 18.75, socketY - 22.5, 37.5, 45]);
   }
   const pump = assets[cooler?.id];
   const radiator = pump?.radiator;
   let tubes;
-  if (radiator) {
+  const radiatorSize = Number(cooler?.spec.match(/\b(120|140|240|280|360|420) mm\b/)?.[1]);
+  if (radiator && topRadiatorLimit >= 360) {
     const radiatorWidth = radiator.lengthMm * CASE_DEPTH_SCALE;
     add(cooler, [51, 23, radiatorWidth, 70], { ...radiator, credit: pump.credit });
     tubes = { radiatorX: 51 + radiatorWidth, pumpX: socketX + 40, pumpY: socketY };
     add(cooler, [socketX - 34, socketY - 49, 78, 92]);
+  } else if (radiatorSize) {
+    if (radiatorSize <= topRadiatorLimit) {
+      add(cooler, [44, 12, radiatorSize * CASE_DEPTH_SCALE, 99], generic(cooler));
+    }
   } else if (cooler) {
     add(cooler, [socketX - 63, socketY - 60, 125, 120]);
   }
-  if (gpu) add(gpu, [43, layout.gpuY, gpu.lengthMm * CASE_DEPTH_SCALE, gpu.thicknessMm]);
-  return { layers, unavailable, tubes };
+  if (gpu) {
+    const width = Math.min((gpu.lengthMm || 300) * CASE_DEPTH_SCALE, 397);
+    const height = assets[gpu.id] ? gpu.thicknessMm : 122;
+    add(gpu, [43, layout.gpuY, width, height]);
+  }
+  return { layers, tubes };
 }
 
 function drawCoolerTubes(context, { radiatorX, pumpX, pumpY }) {
@@ -197,16 +272,21 @@ function drawCoolerTubes(context, { radiatorX, pumpX, pumpY }) {
   context.restore();
 }
 
-function createBuildPreview(assets, lookupPart, seatPart) {
+function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts, renderReferences }) {
   const canvas = document.getElementById("preview-canvas");
+  const caption = document.getElementById("preview-caption");
   const message = document.getElementById("preview-message");
   const coverage = document.getElementById("preview-coverage");
   const clearance = document.getElementById("preview-clearance");
   const sources = document.getElementById("preview-sources");
+  const links = document.getElementById("preview-credits");
   const controls = document.getElementById("preview-options");
   const caseSelect = document.getElementById("preview-case");
   const gpuSelect = document.getElementById("preview-gpu");
   const cpuToggle = document.getElementById("preview-hide-cooler");
+  const exterior = document.getElementById("preview-case-reference");
+  const exteriorImage = exterior.querySelector("img");
+  const exteriorLabel = exterior.querySelector("figcaption");
   let revision = 0;
   let activeSelection;
 
@@ -216,24 +296,38 @@ function createBuildPreview(assets, lookupPart, seatPart) {
   }
 
   cpuToggle.addEventListener("change", () => renderPreview(activeSelection));
+  exteriorImage.addEventListener("error", () => {
+    if (!activeSelection?.case || exterior.hidden) return;
+    exteriorImage.hidden = true;
+    exteriorLabel.textContent = activeSelection.case.name + " · Photo unavailable";
+  });
 
   async function renderPreview(selection) {
     activeSelection = selection;
     const currentRevision = ++revision;
-    const caseId = selection.case?.id;
-    const gpuId = selection.gpu?.id;
-    const hasCaseOptions = caseId === "case-903" || CASE_VARIANTS.includes(caseId);
-    controls.hidden = !hasCaseOptions;
-    caseSelect.value = CASE_VARIANTS.includes(caseId) ? caseId : "";
-    gpuSelect.value = GPU_VARIANTS.includes(gpuId) ? gpuId : "";
-    const layout = BOARD_LAYOUTS[selection.motherboard?.id];
-    const canHideCooler = Boolean(assets[caseId] && layout && assets[selection.cpu?.id]
-      && assets[selection.cooler?.id] && selection.cpu.socket === selection.motherboard.socket);
+    const cse = selection.case;
+    const board = selection.motherboard;
+    const gpu = selection.gpu;
+    const cpu = selection.cpu;
+    const cooler = selection.cooler;
+    const caseId = cse?.id === "case-903" ? CASE_VARIANTS[0] : cse?.id;
+    const caseAsset = assets[caseId];
+    const casePhoto = photos[cse?.id];
+    const plane = CASE_PHOTO_PLANES[caseId];
+    const caseView = caseAsset || (plane && (catalogPreview(cse, photos) || casePhoto));
+    const canHideCooler = Boolean(assets[cpu?.id] && cooler && board?.socket === cpu.socket);
+    caseSelect.parentElement.hidden = !caseAsset;
+    gpuSelect.parentElement.hidden = !caseAsset;
     cpuToggle.parentElement.hidden = !canHideCooler;
+    controls.hidden = !caseAsset && !canHideCooler;
+    caseSelect.value = caseId ?? "";
+    // Keep the current catalog selection visible alongside the two side-on options.
+    if (gpuSelect.options.length > GPU_VARIANTS.length + 1) gpuSelect.remove(gpuSelect.options.length - 1);
+    if (gpu && !GPU_VARIANTS.includes(gpu.id)) gpuSelect.add(new Option(gpu.name, gpu.id));
+    gpuSelect.value = gpu?.id || "";
     if (!canHideCooler) cpuToggle.checked = false;
 
-    const gpu = selection.gpu;
-    const limit = selection.case?.gpuClear;
+    const limit = cse?.gpuClear;
     const cardLength = gpu?.lengthMm;
     clearance.hidden = !limit || !cardLength || !!gpu?.lengthApprox;
     if (!clearance.hidden) {
@@ -246,74 +340,117 @@ function createBuildPreview(assets, lookupPart, seatPart) {
     message.hidden = false;
     coverage.hidden = true;
     sources.hidden = true;
-    if (!caseId) {
-      message.textContent = "Seat flagship or choose a case to see the build.";
-      return;
-    }
-    if (!assets[caseId]) {
-      message.textContent = hasCaseOptions
-        ? "Choose black or white to preview the AIR 903 MAX."
-        : "Assembled view unavailable for " + selection.case.name + ". Open Part photos to see your selections.";
+    exterior.hidden = true;
+    exterior.parentElement.classList.remove("has-case-reference");
+    renderReferences([]);
+
+    const selectedParts = selectParts(selection);
+    if (!selectedParts.length) {
+      caption.textContent = "See your selected parts together using real product photos.";
+      message.textContent = "Select parts from the catalog or click Seat flagship.";
       return;
     }
 
-    message.textContent = "Loading product images…";
-    const { layers, unavailable, tubes } = previewLayers(selection, assets, cpuToggle.checked);
-    const images = await Promise.all(layers.map(({ asset }) => loadPreviewImage(asset.src)));
+    message.textContent = "Loading product photos…";
+    const topRadiator = caseAsset || caseId === "case-montech-xr" ? 360
+      : caseId === "case-nzxt-h5-flow-2024" ? 240
+      : caseView ? 0 : 420;
+    const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, topRadiator);
+    const [caseImage, ...images] = await Promise.all([
+      caseView ? loadPreviewImage(caseView.src) : null,
+      ...layers.map(({ asset }) => loadPreviewImage(asset.src))
+    ]);
     if (currentRevision !== revision) return;
-    if (!images[0]) {
-      message.textContent = "The case image couldn’t load. Try reloading the page.";
-      return;
-    }
 
     const context = canvas.getContext("2d");
     context.setTransform(canvas.width / CASE_WIDTH, 0, 0, canvas.height / CASE_HEIGHT, 0, 0);
     context.clearRect(0, 0, CASE_WIDTH, CASE_HEIGHT);
     const shown = new Map();
-    const boardFailed = Boolean(layout && !images[1]);
-    const pump = assets[selection.cooler?.id];
-    const showTubes = tubes && layers.every(({ part }, index) => part.cat !== "cooler" || images[index]);
-    layers.forEach(({ part, asset, bounds }, index) => {
-      if (boardFailed && index > 1) return;
-      if (!images[index]) {
-        if (!unavailable.includes(part.name)) unavailable.push(part.name);
-        return;
-      }
-      if (showTubes && asset === pump) drawCoolerTubes(context, tubes);
-      drawPreviewLayer(context, asset, images[index], bounds);
-      shown.set(part.name, asset.credit);
-    });
-
-    canvas.setAttribute("aria-label", "Side view of " + [...shown.keys()].join(", "));
-    canvas.hidden = false;
-    message.hidden = true;
-    const needsBoard = !selection.motherboard && (gpu || selection.cooler || selection.ram.length || selection.cpu);
-    const notices = [];
-    if (needsBoard) notices.push("Add a motherboard to show installed parts.");
-    if (selection.motherboard && (boardFailed || !layout)) {
-      notices.push(boardFailed
-        ? "The motherboard image couldn’t load."
-        : "This motherboard needs mounting positions before it can be shown installed.");
+    let fullCaseBounds;
+    if (caseImage) {
+      const [left, top, cropWidth, cropHeight] = caseView.cutout?.[0] || [0, 0, 1, 1];
+      const frame = [0, 0, CASE_WIDTH, CASE_HEIGHT];
+      const caseBounds = caseAsset ? frame : containPhoto(
+        caseImage.naturalWidth * cropWidth, caseImage.naturalHeight * cropHeight, frame);
+      const [x, y, width, height] = caseBounds;
+      fullCaseBounds = [x - left * width / cropWidth, y - top * height / cropHeight,
+        width / cropWidth, height / cropHeight];
+      drawPreviewLayer(context, caseView, caseImage, caseBounds);
+      shown.set(cse.id, { part: cse, credit: caseView.credit });
+    } else if (casePhoto) {
+      exteriorImage.hidden = false;
+      exteriorImage.alt = cse.name;
+      exteriorImage.src = casePhoto.src;
+      exteriorLabel.textContent = cse.name + (casePhoto.variant ? " · " + casePhoto.variant : "");
+      exterior.hidden = false;
     }
-    if (!boardFailed && showTubes) notices.push("Top-mounted radiator. Tube routing is approximate.");
-    if (canHideCooler && shown.has(selection.cooler.name)) notices.push(selection.cpu.short + " is under the cooler.");
-    if (unavailable.length) notices.push("Preview unavailable for " + unavailable.join(", ") + ".");
+
+    context.save();
+    if (caseImage && !caseAsset) {
+      const [x, y, width, height] = fullCaseBounds;
+      const [[ox, oy], [rx, ry], [bx, by]] = plane;
+      context.transform((rx - ox) * width / 244, (ry - oy) * height / 244,
+        (bx - ox) * width / 305, (by - oy) * height / 305, x + ox * width, y + oy * height);
+      context.translate(-44, -55);
+    } else if (!caseImage && layers.length) {
+      const left = Math.min(...layers.map(({ bounds }) => bounds[0]));
+      const top = Math.min(...layers.map(({ bounds }) => bounds[1]));
+      const width = Math.max(...layers.map(({ bounds }) => bounds[0] + bounds[2])) - left;
+      const height = Math.max(...layers.map(({ bounds }) => bounds[1] + bounds[3])) - top;
+      const scale = Math.min(1.35, (CASE_WIDTH - 48) / width, (CASE_HEIGHT - 48) / height);
+      context.translate((CASE_WIDTH - width * scale) / 2, (CASE_HEIGHT - height * scale) / 2);
+      context.scale(scale, scale);
+      context.translate(-left, -top);
+    }
+    const showTubes = tubes && images.filter((image, index) => image && layers[index].part === cooler).length === 2;
+    layers.forEach(({ part, asset, bounds }, index) => {
+      if (!images[index]) return;
+      if (showTubes && asset === assets[cooler.id]) drawCoolerTubes(context, tubes);
+      drawPreviewLayer(context, asset, images[index], bounds);
+      shown.set(part.id, { part, credit: asset.credit });
+    });
+    context.restore();
+    exterior.parentElement.classList.toggle("has-case-reference", !exterior.hidden && shown.size > 0);
+
+    const mixingAngles = !caseAsset || layers.some(({ asset }) => asset.cutout);
+    caption.textContent = caseImage
+      ? mixingAngles ? "Photo preview inside your case. Angles, scale, and mounting positions are approximate."
+        : "Side view assembled from exact-model product images. Placement is approximate."
+      : "Parts layout from your product photos. Mounting positions are approximate.";
+    canvas.setAttribute("aria-label", (caseImage ? "Assembled preview of " : "Parts layout of ")
+      + [...shown.values()].map(({ part }) => part.name).join(", "));
+    canvas.hidden = shown.size === 0;
+    message.hidden = shown.size > 0;
+    if (!message.hidden) {
+      message.textContent = selectedParts.length === 1 && cse
+        ? "Add a motherboard, cooler, or graphics card to see the layout."
+        : "Photos for these parts are below.";
+    }
+
+    const cpuCovered = canHideCooler && shown.has(cooler.id);
+    const notices = [];
+    if (showTubes) notices.push("Tube routing is approximate.");
+    if (cpuCovered) notices.push(cpu.short + " is under the cooler.");
     coverage.textContent = notices.join(" ");
     coverage.hidden = !notices.length;
 
-    const links = document.getElementById("preview-credits");
+    const referenceParts = selectedParts.filter((part) => !shown.has(part.id)
+      && !(part === cse && casePhoto) && !(part === cpu && cpuCovered));
+    renderReferences(referenceParts);
+    const credits = [...shown.values()];
+    if (!caseImage && casePhoto) credits.push({ part: cse, credit: casePhoto.credit });
     links.replaceChildren();
-    for (const [name, url] of shown) {
+    for (const { part, credit } of credits) {
       const item = document.createElement("li");
       const link = document.createElement("a");
-      link.href = url;
+      link.href = credit;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = name;
+      link.textContent = part.name;
       item.append(link);
       links.append(item);
     }
-    sources.hidden = false;
+    sources.hidden = !links.childElementCount;
   }
   return renderPreview;
 }

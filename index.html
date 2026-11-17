@@ -231,11 +231,40 @@
       border-radius: 5px;
       padding: 8px;
     }
+    .preview-visuals {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .preview-visuals.has-case-reference {
+      grid-template-columns: minmax(98px, 1fr) minmax(0, 2.25fr);
+      align-items: start;
+    }
+    .preview-case-reference {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .preview-case-reference img {
+      display: block;
+      width: 100%;
+      min-height: 75px;
+      max-height: 220px;
+      padding: 5px;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f4f4f4;
+    }
+    .preview-case-reference img[hidden] { display: none; }
+    .preview-case-reference figcaption { margin-top: 6px; }
+    #preview-references { margin-top: 14px; }
     #bay {
       display: grid;
       place-items: center;
       min-height: 190px;
-      margin-top: 12px;
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -339,18 +368,28 @@
         <button class="cmd" id="show-photos" type="button" aria-controls="photos-panel" aria-pressed="false">Part photos</button>
       </div>
       <div id="assembled-panel">
-        <p class="preview-caption">Side view assembled from exact-model product images. Placement is approximate.</p>
+        <p class="preview-caption" id="preview-caption">See your selected parts together using real product photos.</p>
         <div class="preview-options" id="preview-options" hidden>
           <label>Case color<select id="preview-case"><option value="" disabled>Choose a color</option></select></label>
-          <label>Graphics card<select id="preview-gpu"><option value="" disabled>Choose a preview model</option></select></label>
+          <label>Graphics card<select id="preview-gpu"><option value="" disabled>Choose a graphics card</option></select></label>
           <label class="preview-layer-toggle" hidden><input type="checkbox" id="preview-hide-cooler">Hide cooler to see CPU</label>
         </div>
-        <div id="bay" aria-label="Case bay, drop parts here">
-          <canvas id="preview-canvas" width="956" height="986" role="img" hidden></canvas>
-          <p id="preview-message" role="status">Seat flagship or choose a case to see the build.</p>
+        <div class="preview-visuals">
+          <figure id="preview-case-reference" class="preview-case-reference" hidden>
+            <img referrerpolicy="no-referrer" alt="">
+            <figcaption></figcaption>
+          </figure>
+          <div id="bay" aria-label="Case bay, drop parts here">
+            <canvas id="preview-canvas" width="956" height="986" role="img" hidden></canvas>
+            <p id="preview-message" role="status">Select parts from the catalog or click Seat flagship.</p>
+          </div>
         </div>
         <p class="preview-note" id="preview-clearance" aria-live="polite" hidden></p>
         <p class="preview-note" id="preview-coverage" role="status" hidden></p>
+        <div id="preview-references" hidden>
+          <p class="preview-caption">More parts in your build</p>
+          <ul class="photo-grid" id="preview-other-photos" aria-label="Other selected part photos"></ul>
+        </div>
         <details id="preview-sources" hidden>
           <summary>Image sources</summary>
           <ul id="preview-credits"></ul>
@@ -373,7 +412,8 @@
       <div id="bill" aria-live="polite"></div>
     </aside>
   </div>
-  <script src="preview.js?v=2"></script>
+  <script src="photo-cutouts.js"></script>
+  <script src="preview.js?v=3"></script>
   <script src="prices.js"></script>
   <script src="part-photos.js?v=2"></script>
   <script>
@@ -1422,17 +1462,23 @@
         : '<p class="hint">No saved lists in this browser.</p>';
     }
 
-    const renderBay = createBuildPreview(PREVIEW_ASSETS, byId, seat);
     const assembledPanel = document.getElementById("assembled-panel");
     const photosPanel = document.getElementById("photos-panel");
     const showAssembled = document.getElementById("show-assembled");
     const showPhotos = document.getElementById("show-photos");
     const selectedPhotos = document.getElementById("selected-photos");
+    const previewReferences = document.getElementById("preview-references");
+    const otherPhotos = document.getElementById("preview-other-photos");
+    const renderBay = createBuildPreview({
+      assets: PREVIEW_ASSETS, photos: PART_PHOTOS, lookupPart: byId, seatPart: seat, selectParts: selectedParts,
+      renderReferences: (parts) => {
+        previewReferences.hidden = parts.length === 0;
+        otherPhotos.innerHTML = photoCards(parts);
+      }
+    });
 
-    function renderPartPhotos(selection) {
-      const parts = selectedParts(selection);
-      document.getElementById("photos-empty").hidden = parts.length > 0;
-      selectedPhotos.innerHTML = parts.map((part) => {
+    function photoCards(parts) {
+      return parts.map((part) => {
         const photo = PART_PHOTOS[part.id];
         const category = CATS.find(({ id }) => id === part.cat).label;
         const searchUrl = "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(part.name);
@@ -1447,6 +1493,12 @@
       }).join("");
     }
 
+    function renderPartPhotos(selection) {
+      const parts = selectedParts(selection);
+      document.getElementById("photos-empty").hidden = parts.length > 0;
+      selectedPhotos.innerHTML = photoCards(parts);
+    }
+
     function showPreviewPhotos(active) {
       assembledPanel.hidden = active;
       photosPanel.hidden = !active;
@@ -1457,7 +1509,7 @@
     }
     showAssembled.addEventListener("click", () => showPreviewPhotos(false));
     showPhotos.addEventListener("click", () => showPreviewPhotos(true));
-    selectedPhotos.addEventListener("error", (event) => {
+    document.querySelector(".stage").addEventListener("error", (event) => {
       const frame = event.target.closest(".photo-frame");
       if (!frame) return;
       frame.hidden = true;
