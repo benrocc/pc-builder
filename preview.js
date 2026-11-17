@@ -176,7 +176,7 @@ function createBuildPreview(assets, lookupPart, seatPart) {
     if (!assets[caseId]) {
       message.textContent = hasCaseOptions
         ? "Choose black or white to preview the AIR 903 MAX."
-        : "Preview unavailable for " + selection.case.name + ".";
+        : "Assembled view unavailable for " + selection.case.name + ". Open Part photos to see your selections.";
       return;
     }
 
