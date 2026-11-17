@@ -283,7 +283,7 @@
       { id: "cooler", label: "Cooler", hint: "The Peerless Assassin is the only cooler with a socket list and a height. The rest are priced options. The bracket was not checked. A length in the spec is a liquid cooler: pump on the socket, radiator on the roof. Air stays the tower." },
       { id: "ram", label: "Memory", hint: "Click a kit to add it. The bay holds four sticks. A kit that does not match the board, or a kit that would need a fifth stick, stays out." },
       { id: "gpu", label: "Graphics", hint: "The first cards are the class order, flagship first. The 1440p index is Tom’s Hardware via Geeky Inc, where the RTX 5090 is 100. Cards after that are individual models with the length from the Nov 13 shelf list." },
-      { id: "storage", label: "Storage", hint: "Click a drive to add it. M.2 and NVMe rows fill four chip positions. A fifth chip stays out. SATA and other drives add beside those, up to four, and do not take a chip position." },
+      { id: "storage", label: "Storage", hint: "Click a drive to add it. The list is M.2 drives and SATA SSDs. Hard drives are not listed. M.2 and NVMe rows fill four chip positions. A fifth chip stays out. A SATA SSD adds beside those, up to four, and does not take a chip position." },
       { id: "psu", label: "Power", hint: "Sorted by wattage. The generic 1000 W price is BGR’s approximate figure. The other units are named models from the Nov 13 shelf list." }
     ];
 
@@ -836,12 +836,7 @@
       {"id":"cooler-ek-ek-nucleus-aio-cr360-lux-d-rgb","cat":"cooler","rank":81,"name":"EK EK-Nucleus AIO CR360 Lux D-RGB","short":"EK EK-Nucleus AIO CR3…","price":163.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"360 mm · 550 - 2300 RPM"},
       {"id":"cooler-lian-li-galahad-ii-lcd","cat":"cooler","rank":82,"name":"Lian Li Galahad II LCD","short":"Lian Li Galahad II LCD","price":623,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"280 mm · 300 - 1550 RPM"},
       {"id":"cooler-asus-rog-ryujin-iii-argb-extreme","cat":"cooler","rank":83,"name":"Asus ROG Ryujin III ARGB Extreme","short":"Asus ROG Ryujin III A…","price":369.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"360 mm · 1 - 2800 RPM"},
-      {"id":"ssd-seagate-exos-m-36-tb","cat":"storage","rank":-160,"name":"Seagate Exos M 36 TB","short":"Seagate Exos M 36 TB","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"36 TB · SATA 6.0 Gb/s"},
-      {"id":"ssd-seagate-ironwolf-pro-32-tb","cat":"storage","rank":-119,"name":"Seagate IronWolf Pro 32 TB","short":"Seagate IronWolf Pro…","price":1399.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"32 TB · SATA 6.0 Gb/s"},
-      {"id":"ssd-seagate-exos-m-30-tb","cat":"storage","rank":-98,"name":"Seagate Exos M 30 TB","short":"Seagate Exos M 30 TB","price":1619.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"30 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-mushkin-source-hc-16-tb","cat":"storage","rank":43,"name":"Mushkin Source HC 16 TB","short":"Mushkin Source HC 16…","price":15884.07,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"16 TB · SATA 6.0 Gb/s"},
-      {"id":"ssd-seagate-barracuda-compute-8-tb","cat":"storage","rank":124,"name":"Seagate Barracuda Compute 8 TB","short":"Seagate Barracuda Com…","price":249.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · SATA 6.0 Gb/s"},
-      {"id":"ssd-seagate-ironwolf-nas-8-tb","cat":"storage","rank":125,"name":"Seagate IronWolf NAS 8 TB","short":"Seagate IronWolf NAS…","price":309.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-samsung-9100-pro-8-tb","cat":"storage","rank":126,"name":"Samsung 9100 PRO 8 TB","short":"Samsung 9100 PRO 8 TB","price":2316.98,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · M.2 PCIe 5.0 X4"},
       {"id":"ssd-samsung-9100-pro-w-heatsink-8-tb","cat":"storage","rank":127,"name":"Samsung 9100 PRO w/Heatsink 8 TB","short":"Samsung 9100 PRO w/He…","price":2476.48,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · M.2 PCIe 5.0 X4"},
       {"id":"ssd-samsung-870-evo-8-tb","cat":"storage","rank":128,"name":"Samsung 870 Evo 8 TB","short":"Samsung 870 Evo 8 TB","price":2749.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · SATA 6.0 Gb/s"},
@@ -849,8 +844,6 @@
       {"id":"ssd-sabrent-rocket-4-plus-8-tb","cat":"storage","rank":130,"name":"Sabrent Rocket 4 Plus 8 TB","short":"Sabrent Rocket 4 Plus…","price":3939.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-western-digital-wd-black-sn850x-8-tb","cat":"storage","rank":131,"name":"Western Digital WD_Black SN850X 8 TB","short":"Western Digital WD_Bl…","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"8 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-intel-d3-s4510-7-68-tb","cat":"storage","rank":135,"name":"Intel D3-S4510 7.68 TB","short":"Intel D3-S4510 7.68 TB","price":4995,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"7.68 TB · SATA 6.0 Gb/s"},
-      {"id":"ssd-seagate-barracuda-4-tb","cat":"storage","rank":173,"name":"Seagate BarraCuda 4 TB","short":"Seagate BarraCuda 4 TB","price":159.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · SATA 6.0 Gb/s"},
-      {"id":"ssd-seagate-ironwolf-nas-4-tb","cat":"storage","rank":174,"name":"Seagate IronWolf NAS 4 TB","short":"Seagate IronWolf NAS…","price":194.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-silicon-power-ud90-4-tb","cat":"storage","rank":175,"name":"Silicon Power UD90 4 TB","short":"Silicon Power UD90 4…","price":435.97,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-western-digital-wd-blue-sn5000-4-tb","cat":"storage","rank":176,"name":"Western Digital WD Blue SN5000 4 TB","short":"Western Digital WD Bl…","price":499.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-crucial-t705-4-tb","cat":"storage","rank":177,"name":"Crucial T705 4 TB","short":"Crucial T705 4 TB","price":629,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · M.2 PCIe 5.0 X4"},
@@ -859,9 +852,7 @@
       {"id":"ssd-samsung-990-pro-4-tb","cat":"storage","rank":180,"name":"Samsung 990 Pro 4 TB","short":"Samsung 990 Pro 4 TB","price":799.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-western-digital-wd-black-sn8100-4-tb","cat":"storage","rank":181,"name":"Western Digital WD_BLACK SN8100 4 TB","short":"Western Digital WD_BL…","price":859.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · M.2 PCIe 5.0 X4"},
       {"id":"ssd-samsung-9100-pro-4-tb","cat":"storage","rank":182,"name":"Samsung 9100 PRO 4 TB","short":"Samsung 9100 PRO 4 TB","price":999.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · M.2 PCIe 5.0 X4"},
-      {"id":"ssd-intel-dc-p3608-4-tb","cat":"storage","rank":183,"name":"Intel DC P3608 4 TB","short":"Intel DC P3608 4 TB","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"4 TB · PCIe x8"},
       {"id":"ssd-kingston-kc3000-2-048-tb","cat":"storage","rank":204,"name":"Kingston KC3000 2.048 TB","short":"Kingston KC3000 2.048…","price":434.19,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2.048 TB · M.2 PCIe 4.0 X4"},
-      {"id":"ssd-seagate-barracuda-compute-2-tb","cat":"storage","rank":205,"name":"Seagate Barracuda Compute 2 TB","short":"Seagate Barracuda Com…","price":139.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-samsung-980-pro-2-tb","cat":"storage","rank":206,"name":"Samsung 980 Pro 2 TB","short":"Samsung 980 Pro 2 TB","price":179.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-silicon-power-p34a60-2-tb","cat":"storage","rank":207,"name":"Silicon Power P34A60 2 TB","short":"Silicon Power P34A60…","price":238.97,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · M.2 PCIe 3.0 X4"},
       {"id":"ssd-silicon-power-ud90-2-tb","cat":"storage","rank":208,"name":"Silicon Power UD90 2 TB","short":"Silicon Power UD90 2…","price":239.97,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · M.2 PCIe 4.0 X4"},
@@ -886,7 +877,6 @@
       {"id":"ssd-western-digital-wd-black-sn8100-2-tb","cat":"storage","rank":227,"name":"Western Digital WD_BLACK SN8100 2 TB","short":"Western Digital WD_BL…","price":479.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · M.2 PCIe 5.0 X4"},
       {"id":"ssd-samsung-870-evo-2-tb","cat":"storage","rank":228,"name":"Samsung 870 Evo 2 TB","short":"Samsung 870 Evo 2 TB","price":498,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-samsung-990-pro-w-heatsink-2-tb","cat":"storage","rank":229,"name":"Samsung 990 Pro w/Heatsink 2 TB","short":"Samsung 990 Pro w/Hea…","price":532.26,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"2 TB · M.2 PCIe 4.0 X4"},
-      {"id":"ssd-seagate-barracuda-1-tb","cat":"storage","rank":240,"name":"Seagate BarraCuda 1 TB","short":"Seagate BarraCuda 1 TB","price":93.97,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-pny-cs900-1-tb","cat":"storage","rank":241,"name":"PNY CS900 1 TB","short":"PNY CS900 1 TB","price":120.67,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-teamgroup-t-force-vulcan-z-1-tb","cat":"storage","rank":242,"name":"TEAMGROUP T-Force Vulcan Z 1 TB","short":"TEAMGROUP T-Force Vul…","price":127.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-silicon-power-a55-1-tb","cat":"storage","rank":243,"name":"Silicon Power A55 1 TB","short":"Silicon Power A55 1 TB","price":128.97,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · SATA 6.0 Gb/s"},
@@ -914,7 +904,6 @@
       {"id":"ssd-western-digital-blue-sn580-1-tb","cat":"storage","rank":265,"name":"Western Digital Blue SN580 1 TB","short":"Western Digital Blue…","price":299,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-samsung-870-evo-1-tb","cat":"storage","rank":266,"name":"Samsung 870 Evo 1 TB","short":"Samsung 870 Evo 1 TB","price":309.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-samsung-970-evo-plus-1-tb","cat":"storage","rank":267,"name":"Samsung 970 Evo Plus 1 TB","short":"Samsung 970 Evo Plus…","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · M.2 PCIe 3.0 X4"},
-      {"id":"ssd-western-digital-caviar-blue-1-tb","cat":"storage","rank":268,"name":"Western Digital Caviar Blue 1 TB","short":"Western Digital Cavia…","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · SATA 6.0 Gb/s"},
       {"id":"ssd-samsung-980-pro-1-tb","cat":"storage","rank":269,"name":"Samsung 980 Pro 1 TB","short":"Samsung 980 Pro 1 TB","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-crucial-p3-plus-1-tb","cat":"storage","rank":270,"name":"Crucial P3 Plus 1 TB","short":"Crucial P3 Plus 1 TB","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · M.2 PCIe 4.0 X4"},
       {"id":"ssd-western-digital-black-sn770-1-tb","cat":"storage","rank":271,"name":"Western Digital Black SN770 1 TB","short":"Western Digital Black…","price":null,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"1 TB · M.2 PCIe 4.0 X4"},
@@ -934,7 +923,6 @@
       {"id":"ssd-patriot-p210-256-gb","cat":"storage","rank":292,"name":"Patriot P210 256 GB","short":"Patriot P210 256 GB","price":39.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"256 GB · SATA 6.0 Gb/s"},
       {"id":"ssd-patriot-p300-256-gb","cat":"storage","rank":293,"name":"Patriot P300 256 GB","short":"Patriot P300 256 GB","price":53.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"256 GB · M.2 PCIe 3.0 X4"},
       {"id":"ssd-kingston-a400-240-gb","cat":"storage","rank":295,"name":"Kingston A400 240 GB","short":"Kingston A400 240 GB","price":72.98,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"240 GB · SATA 6.0 Gb/s"},
-      {"id":"ssd-western-digital-av-gp-160-gb","cat":"storage","rank":296,"name":"Western Digital AV-GP 160 GB","short":"Western Digital AV-GP…","price":24.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"160 GB · SATA 3.0 Gb/s"},
       {"id":"ssd-patriot-burst-elite-120-gb","cat":"storage","rank":298,"name":"Patriot Burst Elite 120 GB","short":"Patriot Burst Elite 1…","price":26.99,"priceNote":"United States shelf price, read Nov 13, 2026","spec":"120 GB · SATA 6.0 Gb/s"},
       {"id":"psu-super-flower-leadex-titanium","cat":"psu","rank":-600,"name":"Super Flower Leadex Titanium","short":"2800 W","price":799.99,"priceNote":"United States shelf price, read Nov 13, 2026","watts":2800,"spec":"2800 W · 80+ Titanium · Full modular · ATX"},
       {"id":"psu-seasonic-prime-px-2200-atx-3-2024","cat":"psu","rank":601,"name":"SeaSonic PRIME PX-2200 ATX 3 (2024)","short":"2200 W","price":659.99,"priceNote":"United States shelf price, read Nov 13, 2026","watts":2200,"spec":"2200 W · 80+ Platinum · Full modular · ATX"},
@@ -1151,8 +1139,8 @@
         const other = drives.length - chips;
         const bits = [];
         if (chips) bits.push(chips + " M.2 chip" + (chips === 1 ? "" : "s"));
-        if (other) bits.push(other + " other drive" + (other === 1 ? "" : "s"));
-        checks.push({ ok: true, text: bits.join(" and ") + ". This page allows 4 M.2 chips and 4 other drives. Real boards differ." });
+        if (other) bits.push(other + " SATA SSD" + (other === 1 ? "" : "s"));
+        checks.push({ ok: true, text: bits.join(" and ") + ". This page allows 4 M.2 chips and 4 SATA SSDs. Real boards differ." });
       }
 
       const open = CATS.filter((c) => c.id === "ram" ? !rams.length : c.id === "storage" ? !drives.length : !sel[c.id]).map((c) => c.label);
@@ -1536,7 +1524,7 @@
         const chips = seated.filter(isChip).length;
         const other = seated.length - chips;
         if (isChip(part) && chips >= 4) return { error: "Four M.2 positions are full. Remove a chip before adding another." };
-        if (!isChip(part) && other >= 4) return { error: "Four drive bays are full. Remove a drive before adding another." };
+        if (!isChip(part) && other >= 4) return { error: "Four SATA SSD bays are full. Remove a SATA SSD before adding another." };
         draft.storage.push(part.id);
       } else {
         draft[part.cat] = part.id;
