@@ -66,7 +66,7 @@
       flex: 1;
       min-height: 0;
       display: grid;
-      grid-template-columns: minmax(480px, 620px) minmax(420px, 1fr) minmax(280px, 340px);
+      grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.35fr) minmax(248px, 0.85fr);
     }
     .list, .bill { min-height: 0; overflow: auto; background: var(--panel); }
     .list { border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
@@ -127,7 +127,7 @@
     .part {
       width: 100%;
       display: grid;
-      grid-template-columns: 28px 120px 1fr auto;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
       gap: 8px;
       align-items: center;
       text-align: left;
@@ -140,14 +140,13 @@
     }
     .part.seated { border-color: var(--copper-dim); background: #211a14; }
     .part.refused { cursor: not-allowed; }
-    .part.refused .name, .part.refused .shot, .part.refused .rank, .part.refused .money { opacity: 0.4; }
+    .part.refused .name, .part.refused .rank, .part.refused .money { opacity: 0.4; }
     .part.refused .spec { color: var(--bad); }
     .rank {
       color: var(--copper);
       font-variant-numeric: tabular-nums;
       font-size: 12px;
     }
-    .part .shot { width: 120px; height: 78px; object-fit: cover; display: block; background: #101412; border: 1px solid #2a332c; }
     .name { font-weight: 600; }
     .kicker {
       color: var(--copper);
@@ -165,28 +164,61 @@
     .money.missing { color: var(--muted); font-family: inherit; }
     .count { color: var(--copper); font-size: 11px; }
     .stage {
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      padding: 8px 16px 12px;
+      min-width: 0;
+      overflow: auto;
+      padding: 18px clamp(12px, 2vw, 24px);
       background: #0c0e0d;
     }
-    #bay {
-      flex: 1;
-      min-height: 420px;
-      position: relative;
-      background: radial-gradient(ellipse at 50% 40%, #1a2420 0%, #0c0e0d 64%);
+    .stage h2 { margin: 0; font-size: 17px; }
+    .preview-caption, .preview-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 5px 0 0;
+      overflow-wrap: anywhere;
     }
-    #pc3d {
-      width: 100%;
-      height: 100%;
+    .preview-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr));
+      gap: 10px;
+      margin: 14px 0 10px;
+    }
+    .preview-options[hidden], #preview-canvas[hidden] { display: none; }
+    .preview-options label { min-width: 0; color: var(--muted); font-size: 12px; }
+    .preview-options select {
       display: block;
-      cursor: grab;
-      touch-action: none;
+      width: 100%;
+      margin-top: 4px;
+      font: inherit;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 8px;
     }
-    #pc3d:active { cursor: grabbing; }
-    body.dragging #bay { outline: 1px dashed var(--copper); outline-offset: -6px; }
-    .legend { margin: 6px 4px 0; color: var(--muted); font-size: 12px; }
+    #bay {
+      display: grid;
+      place-items: center;
+      min-height: 190px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: radial-gradient(ellipse at 50% 38%, #303a37, #151b19);
+    }
+    #preview-canvas {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: clamp(270px, calc(100svh - 294px), 520px);
+      aspect-ratio: 478 / 493;
+    }
+    #preview-message { max-width: 28ch; margin: 0; text-align: center; }
+    #preview-clearance { color: var(--ok); font-variant-numeric: tabular-nums; }
+    #preview-sources { margin-top: 10px; }
+    #preview-sources ul { margin: 4px 0; }
+    body.dragging #bay { outline: 1px dashed var(--copper); outline-offset: -5px; }
+    .legend { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
     .legend.bad { color: var(--bad); }
     .block { margin: 0 0 12px; padding: 8px 10px; border-left: 2px solid var(--bad-line); color: var(--bad); }
     .total-label {
@@ -237,10 +269,12 @@
     summary { cursor: pointer; color: var(--text); }
     details ul { padding-left: 18px; }
     details li { margin: 6px 0; }
-    @media (max-width: 1080px) {
+    @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
       .list, .bill { border: 0; border-top: 1px solid var(--line); max-height: none; }
-      .stage { min-height: 520px; }
+      .stage { overflow: visible; }
+      #preview-canvas { max-height: min(70svh, 520px); }
+      header { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
     }
   </style>
 </head>
@@ -248,7 +282,7 @@
   <header>
     <div>
       <h1><span class="mark">BLB</span> PC BUILDER</h1>
-      <p class="sub">Pictures are original shots of the part type, shared by every row in that class. They are not the manufacturer’s photo of that exact model. Lists run top of the line downward. Prices are shop snapshots from Nov 1–13, 2026, not a quote — the RTX 5090 was cited at both $6,495 and $7,450 that morning. A part that fails a check on this page stays in the list and does not go into the case.</p>
+      <p class="sub">Choose compatible parts and preview supported models. Prices are November 2026 snapshots.</p>
     </div>
     <div class="cmds">
       <button class="cmd primary" id="flagship" type="button">Seat flagship</button>
@@ -261,9 +295,24 @@
       <div class="brandbar" id="brandbar" hidden></div>
       <div id="parts"></div>
     </section>
-    <section class="stage">
-      <div id="bay" aria-label="Case bay, drop parts here"></div>
-      <p class="legend" id="legend">Rear of the case is on the left. A part that fails a check stays out of the case.</p>
+    <section class="stage" aria-labelledby="preview-title">
+      <h2 id="preview-title">Build preview</h2>
+      <p class="preview-caption">Side view assembled from exact-model product images. Placement is approximate.</p>
+      <div class="preview-options" id="preview-options" hidden>
+        <label>Case color<select id="preview-case"><option value="" disabled>Choose a color</option></select></label>
+        <label>Graphics card<select id="preview-gpu"><option value="" disabled>Choose a preview model</option></select></label>
+      </div>
+      <div id="bay" aria-label="Case bay, drop parts here">
+        <canvas id="preview-canvas" width="956" height="986" role="img" hidden></canvas>
+        <p id="preview-message" role="status">Seat flagship or choose a case to see the build.</p>
+      </div>
+      <p class="preview-note" id="preview-clearance" aria-live="polite" hidden></p>
+      <p class="preview-note" id="preview-coverage" role="status" hidden></p>
+      <p class="legend" id="legend" role="status" hidden></p>
+      <details id="preview-sources" hidden>
+        <summary>Image sources</summary>
+        <ul id="preview-credits"></ul>
+      </details>
     </section>
     <aside class="bill" aria-label="Named lists and the seated build">
       <form class="saves" id="save-form">
@@ -275,6 +324,7 @@
       <div id="bill" aria-live="polite"></div>
     </aside>
   </div>
+  <script src="preview.js"></script>
   <script>
     const CATS = [
       { id: "case", label: "Case", hint: "GPU clearance is checked only for the AIR 903 MAX and the H5 Flow. The longer list has a price and a size, and no clearance number." },
@@ -289,6 +339,8 @@
 
     const PARTS = [
       { id: "case-903", cat: "case", rank: 1, name: "Montech AIR 903 MAX", short: "AIR 903 MAX", price: 79.99, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", form: ["atx", "matx", "itx"], gpuClear: 400, gpuClearNote: "Geeky Inc printed 400 mm with the Nov 9 build", spec: "ATX · 400 mm GPU" },
+      { id: "case-903-black", cat: "case", rank: 1, name: "Montech AIR 903 MAX Black", short: "Black", price: 79.99, priceNote: "AIR 903 MAX catalog snapshot", form: ["atx", "matx", "itx"], gpuClear: 400, coolerClear: 180, spec: "ATX · 400 mm GPU · 180 mm cooler" },
+      { id: "case-903-white", cat: "case", rank: 1, name: "Montech AIR 903 MAX White", short: "White", price: null, priceNote: "Montech specifications · no price snapshot for this color", form: ["atx", "matx", "itx"], gpuClear: 400, coolerClear: 180, spec: "ATX · 400 mm GPU · 180 mm cooler" },
       { id: "case-h5", cat: "case", rank: 2, name: "NZXT H5 Flow", short: "H5 Flow", price: 69.99, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", form: ["atx", "matx", "itx"], gpuClear: 365, coolerClear: 165, gpuClearNote: "NZXT published clearance, not rechecked Nov 13", spec: "ATX · 365 mm GPU · 165 mm cooler" },
 
       { id: "board-b850", cat: "motherboard", rank: 1, name: "MSI MAG B850 Tomahawk MAX WiFi", short: "B850 Tomahawk", price: 205, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", socket: "AM5", mem: "DDR5", form: "atx", spec: "ATX · AM5 · DDR5" },
@@ -387,11 +439,11 @@
       { id: "cpu-grhFf7", cat: "cpu", rank: 88, name: "Intel Core i3-12100F", short: "Core i3-12100F", price: null, priceNote: "United States shelf price, read Nov 13, 2026", socket: "LGA1700", watts: 58, wattsApprox: true, vendor: "intel", spec: "4 cores · LGA1700 · 58 W TDP · Alder Lake" },
       { id: "cpu-J8drxr", cat: "cpu", rank: 89, name: "AMD Ryzen 3 3200G", short: "Ryzen 3 3200G", price: 85.79, priceNote: "United States shelf price, read Nov 13, 2026", socket: "AM4", watts: 65, wattsApprox: true, vendor: "amd", spec: "4 cores · AM4 · 65 W TDP · Zen+" },
       { id: "cpu-drBG3C", cat: "cpu", rank: 90, name: "AMD Ryzen 3 4100", short: "Ryzen 3 4100", price: 84.7, priceNote: "United States shelf price, read Nov 13, 2026", socket: "AM4", watts: 65, wattsApprox: true, vendor: "amd", spec: "4 cores · AM4 · 65 W TDP · Zen 2" },
-      { id: "cooler-pa", cat: "cooler", rank: 1, name: "Thermalright Peerless Assassin 120 SE", short: "Peerless Assassin", price: 36.39, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", sockets: ["AM5", "AM4", "LGA1851", "LGA1700"], heightMm: 157, spec: "Tower · 157 mm · AM5, AM4, LGA1851, LGA1700" },
+      { id: "cooler-pa", cat: "cooler", rank: 1, name: "Thermalright Peerless Assassin 120 SE", short: "Peerless Assassin", price: 36.39, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", sockets: ["AM5", "AM4", "LGA1851", "LGA1700"], heightMm: 155, spec: "Tower · 155 mm · AM5, AM4, LGA1851, LGA1700" },
 
       { id: "ram-64g", cat: "ram", rank: 1360, name: "G.Skill Ripjaws S5 64GB DDR5-5600", short: "64GB DDR5", price: 370.31, priceNote: "rampricesusa, Amazon in-stock, Nov 13, 2026", mem: "DDR5", gb: 64, sticks: 2, spec: "2×32 GB · DDR5-5600" },
       { id: "ram-64c", cat: "ram", rank: 1361, name: "Corsair Dominator Platinum RGB 64GB DDR5-6000", short: "64GB Dominator", price: 519.99, priceNote: "rampricesusa, Amazon in-stock, Nov 13, 2026", mem: "DDR5", gb: 64, sticks: 2, spec: "2×32 GB · DDR5-6000 CL30" },
-      { id: "ram-32", cat: "ram", rank: 1680, name: "Patriot Viper Venom 32GB DDR5-6000", short: "32GB DDR5", price: 489.99, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", mem: "DDR5", gb: 32, sticks: 2, spec: "2×16 GB · DDR5-6000 CL30" },
+      { id: "ram-32", cat: "ram", rank: 1680, name: "Patriot Viper Venom 32GB DDR5-6000 CL30 (PVV532G600C30K)", short: "32GB DDR5", price: 489.99, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", mem: "DDR5", gb: 32, sticks: 2, spec: "2×16 GB · DDR5-6000 CL30" },
       { id: "ram-16", cat: "ram", rank: 1840, name: "Patriot Viper Venom 16GB DDR5-6000", short: "16GB DDR5", price: 249.99, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", mem: "DDR5", gb: 16, sticks: 2, spec: "2×8 GB · DDR5-6000" },
       { id: "ram-d4", cat: "ram", rank: 1841, name: "DDR4-3600 16GB", short: "16GB DDR4", price: null, priceNote: "No single shelf price in the Nov 13 snapshot", kicker: "AM4", mem: "DDR4", gb: 16, sticks: 2, spec: "2×8 GB · DDR4-3600 · for the B550 board" },
 
@@ -411,7 +463,8 @@
       { id: "psu-850", cat: "psu", rank: 3300, name: "Montech Century II 850W", short: "Century II 850W", price: 89.9, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", watts: 850, spec: "850 W · ATX 3.1 Gold" },
       { id: "psu-750", cat: "psu", rank: 3500, name: "Corsair RM750e", short: "RM750e", price: 89.99, priceNote: "Amazon US via Geeky Inc, Nov 9, 2026", watts: 750, spec: "750 W · ATX 3.1 Gold" },
       {"id":"gpu-asus-rog-astral-oc-geforce-rtx-5090","cat":"gpu","rank":20,"name":"Asus ROG Astral OC GeForce RTX 5090","short":"RTX 5090","price":5499.99,"priceNote":"United States shelf price, read Nov 13, 2026","vendor":"nvidia","spec":"32 GB · 358 mm · RTX 5090","lengthMm":358},
-      {"id":"gpu-nvidia-founders-edition-geforce-rtx-5090","cat":"gpu","rank":21,"name":"NVIDIA Founders Edition GeForce RTX 5090","short":"RTX 5090","price":1999.99,"priceNote":"United States shelf price, read Nov 13, 2026","vendor":"nvidia","spec":"32 GB · 304 mm · RTX 5090","lengthMm":304},
+      {"id":"gpu-nvidia-founders-edition-geforce-rtx-5090","cat":"gpu","rank":21,"name":"NVIDIA Founders Edition GeForce RTX 5090","short":"5090 Founders Edition","price":1999.99,"priceNote":"United States shelf price, read Nov 13, 2026","vendor":"nvidia","spec":"32 GB · 304 mm · 2 slots","lengthMm":304,"thicknessMm":40,"watts":575},
+      { id: "gpu-zotac-rtx-5090-solid-oc", cat: "gpu", rank: 21, name: "Zotac Gaming GeForce RTX 5090 Solid OC", short: "5090 Zotac Solid OC", price: null, priceNote: "Zotac specifications · no price snapshot", vendor: "nvidia", lengthMm: 329.7, thicknessMm: 67.8, watts: 575, spec: "32 GB · 329.7 mm · 3.5 slots" },
       {"id":"gpu-gigabyte-gaming-oc-geforce-rtx-5080","cat":"gpu","rank":43,"name":"Gigabyte GAMING OC GeForce RTX 5080","short":"RTX 5080","price":2299.99,"priceNote":"United States shelf price, read Nov 13, 2026","vendor":"nvidia","spec":"16 GB · 340 mm · RTX 5080","lengthMm":340},
       {"id":"gpu-asus-rog-astral-oc-geforce-rtx-5080","cat":"gpu","rank":44,"name":"Asus ROG Astral OC GeForce RTX 5080","short":"RTX 5080","price":2800,"priceNote":"United States shelf price, read Nov 13, 2026","vendor":"nvidia","spec":"16 GB · 358 mm · RTX 5080","lengthMm":358},
       {"id":"gpu-pny-oc-geforce-rtx-5080","cat":"gpu","rank":45,"name":"PNY OC GeForce RTX 5080","short":"RTX 5080","price":2348.98,"priceNote":"United States shelf price, read Nov 13, 2026","vendor":"nvidia","spec":"16 GB · 329 mm · RTX 5080","lengthMm":329},
@@ -1054,7 +1107,7 @@
           : drives.length + " drives";
       }
       const part = state[catId] ? byId(state[catId]) : null;
-      return part ? part.short : "";
+      return part ? (CASE_VARIANTS.includes(part.id) ? "AIR 903 MAX " + part.short : part.short) : "";
     }
 
     function cents(n) { return Math.round(n * 100); }
@@ -1112,9 +1165,13 @@
         else checks.push({ ok: true, text: gb + " GB across " + rams.length + " kit" + (rams.length > 1 ? "s" : "") + " (" + sticks + " sticks) on a " + board.mem + " board." });
       }
       if (gpu && cse && gpu.lengthMm && cse.gpuClear) {
-        const word = gpu.lengthApprox ? "Example length " : "Listed length ";
-        if (gpu.lengthMm <= cse.gpuClear) checks.push({ ok: true, text: word + gpu.lengthMm + " mm fits " + cse.gpuClear + " mm in the " + cse.short + ". Real cards differ." });
-        else checks.push({ ok: false, text: word + gpu.lengthMm + " mm does not clear the " + cse.short + " (" + cse.gpuClear + " mm). " + (cse.gpuClearNote || "Confirm the case.") + ". Real cards differ." });
+        const label = gpu.lengthApprox ? "Example GPU length" : "GPU length";
+        const fits = gpu.lengthMm <= cse.gpuClear;
+        checks.push({
+          ok: fits,
+          text: label + " of " + gpu.lengthMm + " mm "
+            + (fits ? "is within" : "exceeds") + " the " + cse.gpuClear + " mm limit for " + cse.name + "."
+        });
       }
       if (cooler && cpu && cooler.sockets) {
         if (cooler.sockets.includes(cpu.socket)) checks.push({ ok: true, text: "Cooler list includes " + cpu.socket + ". Confirm the bracket in the box." });
@@ -1145,20 +1202,6 @@
 
       const open = CATS.filter((c) => c.id === "ram" ? !rams.length : c.id === "storage" ? !drives.length : !sel[c.id]).map((c) => c.label);
       return { checks, open };
-    }
-
-    function icon(p) {
-      const file = {
-        cpu: p.vendor === "intel" ? "cpu-intel.jpg" : "cpu-amd.jpg",
-        gpu: p.vendor === "amd" ? "gpu-amd.jpg" : "gpu-nvidia.jpg",
-        ram: "ram.jpg",
-        motherboard: "board.jpg",
-        case: "case.jpg",
-        cooler: /^\d/.test(p.spec || "") ? "cooler-aio.jpg" : "cooler.jpg",
-        storage: "ssd.jpg",
-        psu: "psu.jpg"
-      }[p.cat] || "case.jpg";
-      return '<img class="shot" src="img/' + file + '" alt="">';
     }
 
     function renderList() {
@@ -1201,184 +1244,11 @@
         const priceClass = p.price == null ? "money missing" : "money";
         return '<div class="part' + (seated ? " seated" : "") + (why ? " refused" : "") + '" draggable="' + (why ? "false" : "true") + '" role="button" tabindex="0" data-id="' + p.id + '" aria-pressed="' + seated + '" aria-disabled="' + (why ? "true" : "false") + '" title="' + esc(why || p.priceNote) + '">' +
           '<span class="rank">' + String(p.rank).padStart(2, "0") + '</span>' +
-          icon(p) +
           '<span><span class="name">' + (p.kicker ? '<span class="kicker">' + esc(p.kicker) + '</span><br>' : '') + esc(p.name) + (copies > 1 ? ' <span class="count">×' + copies + '</span>' : '') + '</span><br><span class="spec">' + esc(why || p.spec) + '</span></span>' +
           '<span class="' + priceClass + '">' + esc(money(p.price, p.priceApprox)) + '</span></div>';
       }).join("");
       partsEl.innerHTML = '<p class="hint">' + esc(cat.hint) + '</p>' + html;
       partsEl.scrollTop = y;
-    }
-
-    let leanX = 0;
-    let leanY = 0;
-    let spun = false;
-    let sceneSel = null;
-
-    const pcShots = {};
-    function pcImage(src) {
-      const hit = pcShots[src];
-      if (hit) return hit;
-      const img = new Image();
-      pcShots[src] = img;
-      img.onload = () => drawPc();
-      img.src = src;
-      return img;
-    }
-
-    function drawPc() {
-      const canvas = document.getElementById("pc3d");
-      if (!canvas) return;
-      const sel = sceneSel || {};
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      if (w < 2 || h < 2) return;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      const ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-
-      const cse = sel.case;
-      const gpu = sel.gpu;
-      const rams = sel.ram || [];
-      const sticks = Math.min(4, rams.reduce((sum, kit) => sum + (kit.sticks || 0), 0));
-      let span = 0.9;
-      if (gpu && gpu.lengthMm) {
-        const basis = cse && cse.gpuClear ? cse.gpuClear : 400;
-        span = Math.max(0.58, Math.min(1.05, gpu.lengthMm / basis));
-      }
-
-      const shot = pcImage("img/case-window.jpg");
-      if (!shot.complete || !shot.naturalWidth) {
-        ctx.fillStyle = "#8d9a8e";
-        ctx.font = "14px Bahnschrift, Segoe UI, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("Loading the case…", w / 2, h / 2);
-        return;
-      }
-
-      const fit = Math.min(w / shot.naturalWidth, (h - 28) / shot.naturalHeight);
-      const dw = shot.naturalWidth * fit;
-      const dh = shot.naturalHeight * fit;
-      const dx = (w - dw) / 2;
-      const dy = Math.max(8, (h - 28 - dh) / 2);
-      ctx.drawImage(shot, dx, dy, dw, dh);
-      const scale = dw / shot.naturalWidth;
-
-      function place(ix, iy, iw, ih, src, bright, turn) {
-        const img = pcImage(src);
-        if (!img.complete || !img.naturalWidth) return;
-        const x = dx + (ix / shot.naturalWidth) * dw + leanX;
-        const y = dy + (iy / shot.naturalHeight) * dh + leanY;
-        const pw = iw * scale;
-        const ph = ih * scale;
-        ctx.save();
-        ctx.filter = "brightness(" + (bright == null ? 0.82 : bright) + ")";
-        ctx.shadowColor = "rgba(0,0,0,0.55)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 3;
-        if (turn) {
-          ctx.translate(x + pw / 2, y + ph / 2);
-          ctx.rotate(-Math.PI / 2);
-          ctx.drawImage(img, -ph / 2, -pw / 2, ph, pw);
-        } else ctx.drawImage(img, x, y, pw, ph);
-        ctx.restore();
-      }
-
-      const formScale = sel.motherboard && sel.motherboard.form === "itx" ? 170 / 305
-        : sel.motherboard && sel.motherboard.form === "matx" ? 244 / 305
-        : 1;
-      const mount = { x: 148, y: 292, w: 490 * formScale, h: 392 * formScale };
-      function frac(fx, fy, fw, fh) {
-        return [mount.x + fx * mount.w, mount.y + fy * mount.h, fw * mount.w, fh * mount.h];
-      }
-
-      if (sel.motherboard) place(mount.x, mount.y, mount.w, mount.h, "img/board-atx.png", 0.78);
-      const liquid = sel.cooler && /^\d/.test(sel.cooler.spec || "");
-      let radBottom = mount.y;
-      if (liquid) {
-        const radW = 480;
-        const radImg = pcImage("img/aio-rad.png");
-        if (radImg.complete && radImg.naturalWidth) {
-          const radH = radW * radImg.naturalHeight / radImg.naturalWidth;
-          const radX = 423 - radW / 2;
-          const radY = 174;
-          radBottom = radY + radH;
-          place(radX, radY, radW, radH, "img/aio-rad.png", 0.7);
-        }
-      }
-      if (sel.motherboard) {
-        const chips = (sel.storage || []).filter(isChip);
-        const spots = [
-          [0.14, 0.12, 0.38, 0.065],
-          [0.565, 0.16, 0.07, 0.36, true],
-          [0.05, 0.46, 0.26, 0.07],
-          [0.16, 0.80, 0.36, 0.06]
-        ];
-        chips.slice(0, 4).forEach((drive, i) => {
-          const spot = spots[i];
-          const box = frac(spot[0], spot[1], spot[2], spot[3]);
-          place(box[0], box[1], box[2], box[3], "img/ssd-m2.png", 0.9, !!spot[4]);
-        });
-      }
-      if (gpu) {
-        const fw = Math.min(0.80, 0.55 + ((span - 0.58) / (1.05 - 0.58)) * 0.30);
-        const file = gpu.vendor === "amd" ? "img/gpu-amd-window.png" : "img/gpu-window.png";
-        place(...frac(0.16, 0.68, fw, 0.36), file, 0.78);
-      }
-      const slotX = [0.667, 0.708, 0.750, 0.790];
-      const usedSlots = sticks >= 4 ? [0, 1, 2, 3] : sticks === 3 ? [1, 2, 3] : sticks === 2 ? [1, 3] : sticks === 1 ? [1] : [];
-      usedSlots.forEach((slot) => {
-        const fw = 0.046;
-        place(...frac(slotX[slot] - fw / 2, 0.10, fw, 0.60), "img/ram-edge.png", 0.95);
-      });
-      if (sel.cpu && !sel.cooler) {
-        const intel = sel.cpu.vendor === "intel";
-        const file = intel ? "img/cpu-intel-ihs.png" : "img/cpu-amd-ihs.png";
-        if (!sel.motherboard) place(intel ? 270 : 310, 330, intel ? 230 : 190, intel ? 200 : 190, file, 0.9);
-        else {
-          const fw = intel ? 0.155 : 0.145;
-          const fh = intel ? 0.17 : 0.181;
-          place(...frac(0.44 - fw / 2, 0.40 - fh / 2, fw, fh), file, 0.9);
-        }
-      }
-      if (liquid) {
-        const pumpImg = pcImage("img/aio-pump.png");
-        if (pumpImg.complete && pumpImg.naturalWidth) {
-          const circleCy = 0.709;
-          const socketX = mount.x + 0.44 * mount.w;
-          const socketY = mount.y + 0.40 * mount.h;
-          const imgH = Math.max(120, (socketY - radBottom) / circleCy);
-          const imgW = imgH * pumpImg.naturalWidth / pumpImg.naturalHeight;
-          place(socketX - imgW / 2, socketY - circleCy * imgH, imgW, imgH, "img/aio-pump.png", 0.9);
-        }
-      } else if (sel.cooler) {
-        const fh = 0.34;
-        const fw = fh * (647 / 751) * (mount.h / mount.w);
-        place(...frac(0.44 - fw / 2, 0.40 - fh / 2, fw, fh), "img/cooler-front.png", 0.88);
-      }
-      if (sel.psu) place(270, 830, 280, 120, "img/psu-window.png", 0.85);
-
-      ctx.fillStyle = "#8d9a8e";
-      ctx.font = "13px Bahnschrift, Segoe UI, sans-serif";
-      ctx.textAlign = "center";
-      const cap = (cse ? cse.short : "Open case")
-        + (sel.cpu && !sel.motherboard ? "   ·   no motherboard in the tray" : "")
-        + (sel.motherboard && !sel.cpu ? "   ·   no CPU on the socket" : "");
-      ctx.fillText(cap, w / 2, h - 14);
-    }
-
-    function renderBay(sel) {
-      sceneSel = sel;
-      const names = [sel.case && sel.case.short, sel.cpu && sel.cpu.short, sel.gpu && sel.gpu.short].filter(Boolean);
-      const bay = document.getElementById("bay");
-      bay.innerHTML = '<canvas id="pc3d" aria-label="' + esc(names.join(", ") || "Empty case") + '"></canvas>';
-      if (!bay.dataset.watch) {
-        bay.dataset.watch = "1";
-        new ResizeObserver(() => drawPc()).observe(bay);
-      }
-      drawPc();
     }
 
     function renderBill(sel, report) {
@@ -1426,12 +1296,12 @@
         '<li>Same morning, first results page for graphics cards, motherboards, memory, cases, coolers, storage, and power supplies. Those added rows use that page’s price and, for cards, that page’s length. A listed price can be a thin or odd offer. The class RTX 5090 row stays at the $6,495 figure.</li>' +
         '<li>Nov 9, 2026, Geeky Inc, Amazon US buy box: B850 Tomahawk $205, B650 Gaming Plus $119.99, Peerless Assassin $36.39, Viper 32GB $489.99, Viper 16GB $249.99, RX 9070 XT $999.97, RX 9070 $809.99, RTX 5070 $990, RTX 5060 Ti 8GB $499.99, 990 EVO Plus 2TB $354, SN5100 2TB $279, NV3 1TB $156.50, Century II 850W $89.90, RM750e $89.99, AIR 903 MAX $79.99 with 400 mm GPU clearance, H5 Flow $69.99. 1440p index figures in the GPU list are from that article’s reading of Tom’s Hardware.</li>' +
         '<li>Nov 13, 2026, Basketprice: Ryzen 9 9950X3D $624 on Amazon. This page uses PCPartPicker’s $599 from the same morning. RTX 5080 cheapest tracked $2,244.99. RTX 5090 cheapest tracked $7,450.</li>' +
-        '<li>Nov 13, 2026, ReadyGPU: RTX 5090 Amazon new listing about $6,495. This page uses $6,495 and keeps the $7,450 figure in the header so the spread stays visible.</li>' +
+        '<li>Nov 13, 2026, ReadyGPU: RTX 5090 Amazon new listing about $6,495. This is the snapshot for the generic RTX 5090 catalog row.</li>' +
         '<li>Nov 12, 2026, Basketprice: RTX 5070 Ti cheapest $1,549.99. This page uses Geeky Inc’s Nov 9 price of $1,777.16 because that sentence is tied to the 69.8 index.</li>' +
         '<li>Nov 1, 2026, HardwareFPS: Core Ultra 7 265KF $359.99. This page uses the Nov 13 PCPartPicker price on that row. Same piece had an RTX 5080 at $1,999.99, twelve days before the $2,244.99 figure.</li>' +
         '<li>Nov 13, 2026, rampricesusa, Amazon in-stock: Ripjaws S5 64GB DDR5-5600 $370.31, Dominator Platinum RGB 64GB DDR5-6000 $519.99. The 32GB Viper kit can cost more than the 64GB Ripjaws kit on these snapshots.</li>' +
         '<li>BGR’s 2026 high-end build: a 1000 W ATX 3.1 supply at about $195. No brand.</li>' +
-        '<li>RTX 5090 board power of 575 W is from ReadyGPU. Other GPU watts, the 265KF turbo figure, and every card length are class examples for these rules. The H5 Flow 365 mm / 165 mm numbers are NZXT’s published clearance.</li>' +
+        '<li>RTX 5090 board power of 575 W is from ReadyGPU. Other GPU watts, the 265KF turbo figure, and lengths marked “example” are estimates. The H5 Flow 365 mm / 165 mm numbers are NZXT’s published clearance. The two preview RTX 5090 models use manufacturer dimensions.</li>' +
         '</ul></details>';
     }
 
@@ -1489,11 +1359,14 @@
         : '<p class="hint">No saved lists in this browser.</p>';
     }
 
+    const renderBay = createBuildPreview(PREVIEW_ASSETS, byId, seat);
+
     function render() {
       const sel = selected();
       renderSaves();
       const legend = document.getElementById("legend");
-      legend.textContent = state.blocked || "Rear of the case is on the left. A part that fails a check stays out of the case.";
+      legend.textContent = state.blocked || "";
+      legend.hidden = !state.blocked;
       legend.classList.toggle("bad", !!state.blocked);
       renderList();
       renderBay(sel);
@@ -1604,24 +1477,6 @@
       const id = e.dataTransfer.getData("text/plain");
       if (id) seat(id);
     });
-    let orbit = null;
-    bay.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0 || document.body.classList.contains("dragging")) return;
-      orbit = { x: e.clientX, y: e.clientY };
-      spun = true;
-      bay.setPointerCapture(e.pointerId);
-    });
-    bay.addEventListener("pointermove", (e) => {
-      if (!orbit) return;
-      leanX = Math.max(-12, Math.min(12, leanX + (e.clientX - orbit.x) * 0.06));
-      leanY = Math.max(-8, Math.min(8, leanY + (e.clientY - orbit.y) * 0.06));
-      orbit.x = e.clientX;
-      orbit.y = e.clientY;
-      drawPc();
-    });
-    bay.addEventListener("pointerup", () => { orbit = null; });
-    bay.addEventListener("pointercancel", () => { orbit = null; });
-
     document.getElementById("bill").addEventListener("click", (e) => {
       const btn = e.target.closest("[data-remove]");
       if (!btn) return;
@@ -1639,14 +1494,14 @@
 
     document.getElementById("flagship").addEventListener("click", () => {
       state = {
-        case: "case-903",
+        case: CASE_VARIANTS[0],
         motherboard: "board-b850",
         cpu: "cpu-Pk62FT",
         cooler: "cooler-pa",
         ram: ["ram-32"],
-        gpu: "gpu-5090",
+        gpu: GPU_VARIANTS[0],
         storage: ["ssd-990"],
-        psu: "psu-1000",
+        psu: "psu-corsair-rm1000x-2024",
         blocked: ""
       };
       render();
