@@ -129,6 +129,17 @@ function loadPreviewImage(src) {
   return previewImages.get(src);
 }
 
+async function loadCatalogImage(src, preserveThumbnailFrame = false) {
+  const original = src.replace(/^(https:\/\/cdna\.pcpartpicker\.com\/static\/forever\/images\/product\/[a-f\d]{32})\.256p\.jpg$/, "$1.jpg");
+  if (original === src) return loadPreviewImage(src);
+
+  const image = await loadPreviewImage(original);
+  if (image && (!preserveThumbnailFrame || (image.naturalWidth === image.naturalHeight && image.naturalWidth >= 256))) {
+    return image;
+  }
+  return loadPreviewImage(src);
+}
+
 function catalogPreview(part, photos) {
   const photo = photos[part?.id];
   const cutout = PHOTO_CUTOUTS[part?.id];
@@ -142,16 +153,26 @@ function containPhoto(width, height, [x, y, maxWidth, maxHeight]) {
   return [x + (maxWidth - fittedWidth) / 2, y + (maxHeight - fittedHeight) / 2, fittedWidth, fittedHeight];
 }
 
-function drawPreviewLayer(context, asset, image, [x, y, width, height]) {
-  context.save();
+function previewSource(asset, image) {
   const crop = asset.cutout?.[0];
-  const [sx, sy, sw, sh] = crop
+  return crop
     ? crop.map((value, index) => value * (index % 2 === 0 ? image.naturalWidth : image.naturalHeight))
     : asset.crop || [0, 0, image.naturalWidth, image.naturalHeight];
+}
+
+function framePreviewLayer(asset, image, bounds) {
+  const source = previewSource(asset, image);
+  const [, , sw, sh] = source;
   const rotate = asset.vertical && sw > sh;
-  if (asset.cutout) {
-    [x, y, width, height] = containPhoto(rotate ? sh : sw, rotate ? sw : sh, [x, y, width, height]);
-  }
+  const frame = asset.cutout
+    ? containPhoto(rotate ? sh : sw, rotate ? sw : sh, bounds)
+    : bounds;
+  return { asset, image, source, frame, rotate };
+}
+
+function drawPreviewLayer(context, { asset, image, source, frame, rotate }) {
+  const [x, y, width, height] = frame;
+  context.save();
   context.translate(x, y);
   context.scale(width, height);
   if (rotate) {
@@ -185,9 +206,29 @@ function drawPreviewLayer(context, asset, image, [x, y, width, height]) {
     context.transform(a, b, c, d, e, f);
     context.drawImage(image, 0, 0, 1, 1);
   } else {
+    const [sx, sy, sw, sh] = source;
     context.drawImage(image, sx, sy, sw, sh, 0, 0, 1, 1);
   }
   context.restore();
+}
+
+function framePreviewCanvas(canvas, [x, y, width, height]) {
+  const density = 1600 / Math.max(width, height);
+  canvas.width = Math.round(width * density);
+  canvas.height = Math.round(height * density);
+  const context = canvas.getContext("2d");
+  const scaleX = canvas.width / width;
+  const scaleY = canvas.height / height;
+  context.setTransform(scaleX, 0, 0, scaleY, -x * scaleX, -y * scaleY);
+  return context;
+}
+
+function sceneFrame(layers) {
+  const left = Math.min(...layers.map(({ frame }) => frame[0]));
+  const top = Math.min(...layers.map(({ frame }) => frame[1]));
+  const right = Math.max(...layers.map(({ frame: [x, , width] }) => x + width));
+  const bottom = Math.max(...layers.map(({ frame: [, y, , height] }) => y + height));
+  return [left, top, right - left, bottom - top];
 }
 
 function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) {
@@ -272,8 +313,56 @@ function drawCoolerTubes(context, { radiatorX, pumpX, pumpY }) {
   context.restore();
 }
 
+function drawBuildScene(canvas, caseLayer, plane, layers, tubes, pump) {
+  let frame;
+  if (caseLayer) {
+    frame = caseLayer.frame;
+  } else {
+    frame = sceneFrame(layers);
+    if (tubes) frame[2] = Math.max(frame[2], tubes.radiatorX + 16 - frame[0]);
+  }
+  const context = framePreviewCanvas(canvas, frame);
+  if (caseLayer) {
+    drawPreviewLayer(context, caseLayer);
+    if (plane) {
+      const [x, y, width, height] = caseLayer.frame;
+      const [left, top, cropWidth, cropHeight] = caseLayer.asset.cutout?.[0] || [0, 0, 1, 1];
+      const [[ox, oy], [rx, ry], [bx, by]] = plane;
+      const rawWidth = width / cropWidth;
+      const rawHeight = height / cropHeight;
+      context.transform((rx - ox) * rawWidth / 244, (ry - oy) * rawHeight / 244,
+        (bx - ox) * rawWidth / 305, (by - oy) * rawHeight / 305,
+        x + (ox - left) * rawWidth, y + (oy - top) * rawHeight);
+      context.translate(-44, -55);
+    }
+  }
+  for (const layer of layers) {
+    if (tubes && layer.asset === pump) drawCoolerTubes(context, tubes);
+    drawPreviewLayer(context, layer);
+  }
+}
+
+function frameProductPhoto(part, photo, image) {
+  const crop = PHOTO_CUTOUTS[part.id]?.[0];
+  // Catalog trims were measured on the square thumbnail. A non-square
+  // original already has its own frame and uses its natural dimensions.
+  let asset = photo;
+  if (crop && (image.src === photo.src || image.naturalWidth === image.naturalHeight)) {
+    const [x, y, width, height] = crop;
+    const left = Math.max(0, x - .02);
+    const top = Math.max(0, y - .02);
+    const right = Math.min(1, x + width + .02);
+    const bottom = Math.min(1, y + height + .02);
+    asset = { ...photo, cutout: [[left, top, right - left, bottom - top]] };
+  }
+  const [, , width, height] = previewSource(asset, image);
+  return framePreviewLayer(asset, image, [0, 0, width, height]);
+}
+
 function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts, renderReferences }) {
   const canvas = document.getElementById("preview-canvas");
+  const bay = canvas.parentElement;
+  const stage = bay.closest(".stage");
   const caption = document.getElementById("preview-caption");
   const message = document.getElementById("preview-message");
   const coverage = document.getElementById("preview-coverage");
@@ -284,11 +373,19 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
   const caseSelect = document.getElementById("preview-case");
   const gpuSelect = document.getElementById("preview-gpu");
   const cpuToggle = document.getElementById("preview-hide-cooler");
-  const exterior = document.getElementById("preview-case-reference");
-  const exteriorImage = exterior.querySelector("img");
-  const exteriorLabel = exterior.querySelector("figcaption");
+  const subjectSelect = document.getElementById("preview-subject");
   let revision = 0;
   let activeSelection;
+
+  function fitPreviewHeight() {
+    if (canvas.hidden || getComputedStyle(stage).overflowY !== "auto") return;
+    const bayOffset = bay.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop;
+    const { paddingTop, paddingBottom } = getComputedStyle(bay);
+    const available = stage.clientHeight - bayOffset - parseFloat(paddingTop) - parseFloat(paddingBottom) - 18;
+    canvas.style.setProperty("--preview-height", Math.max(180, Math.floor(available)) + "px");
+  }
+  const layoutObserver = new ResizeObserver(fitPreviewHeight);
+  for (const element of [stage, caption, controls, subjectSelect.parentElement]) layoutObserver.observe(element);
 
   for (const [select, ids] of [[caseSelect, CASE_VARIANTS], [gpuSelect, GPU_VARIANTS]]) {
     ids.forEach((id) => select.add(new Option(lookupPart(id).short, id)));
@@ -296,11 +393,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
   }
 
   cpuToggle.addEventListener("change", () => renderPreview(activeSelection));
-  exteriorImage.addEventListener("error", () => {
-    if (!activeSelection?.case || exterior.hidden) return;
-    exteriorImage.hidden = true;
-    exteriorLabel.textContent = activeSelection.case.name + " · Photo unavailable";
-  });
+  subjectSelect.addEventListener("change", () => renderPreview(activeSelection));
 
   async function renderPreview(selection) {
     activeSelection = selection;
@@ -310,16 +403,26 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     const gpu = selection.gpu;
     const cpu = selection.cpu;
     const cooler = selection.cooler;
+    const selectedParts = selectParts(selection);
+    const photoChoices = [...new Map(selectedParts.filter((part) => photos[part.id])
+      .map((part) => [part.id, part])).values()];
+    const focus = photoChoices.find((part) => part.id === subjectSelect.value);
+    const photoSubject = focus || (selectedParts.length === 1 ? photoChoices[0] : null);
+    subjectSelect.replaceChildren(new Option("Build", ""), ...photoChoices.map(
+      (part) => new Option(part.name, part.id)));
+    subjectSelect.value = focus?.id || "";
+    subjectSelect.parentElement.hidden = selectedParts.length < 2 || !photoChoices.length;
+
     const caseId = cse?.id === "case-903" ? CASE_VARIANTS[0] : cse?.id;
     const caseAsset = assets[caseId];
     const casePhoto = photos[cse?.id];
     const plane = CASE_PHOTO_PLANES[caseId];
-    const caseView = caseAsset || (plane && (catalogPreview(cse, photos) || casePhoto));
+    const caseView = caseAsset || (plane && casePhoto);
     const canHideCooler = Boolean(assets[cpu?.id] && cooler && board?.socket === cpu.socket);
-    caseSelect.parentElement.hidden = !caseAsset;
-    gpuSelect.parentElement.hidden = !caseAsset;
-    cpuToggle.parentElement.hidden = !canHideCooler;
-    controls.hidden = !caseAsset && !canHideCooler;
+    caseSelect.parentElement.hidden = Boolean(photoSubject || !caseAsset);
+    gpuSelect.parentElement.hidden = Boolean(photoSubject || !caseAsset);
+    cpuToggle.parentElement.hidden = Boolean(photoSubject || !canHideCooler);
+    controls.hidden = Boolean(photoSubject || (!caseAsset && !canHideCooler));
     caseSelect.value = caseId ?? "";
     // Keep the current catalog selection visible alongside the two side-on options.
     if (gpuSelect.options.length > GPU_VARIANTS.length + 1) gpuSelect.remove(gpuSelect.options.length - 1);
@@ -329,7 +432,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
 
     const limit = cse?.gpuClear;
     const cardLength = gpu?.lengthMm;
-    clearance.hidden = !limit || !cardLength || !!gpu?.lengthApprox;
+    clearance.hidden = Boolean(photoSubject || !limit || !cardLength || gpu?.lengthApprox);
     if (!clearance.hidden) {
       const margin = Math.round((limit - cardLength) * 10) / 10;
       clearance.textContent = cardLength + " mm GPU · " + limit + " mm case limit · "
@@ -340,11 +443,8 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     message.hidden = false;
     coverage.hidden = true;
     sources.hidden = true;
-    exterior.hidden = true;
-    exterior.parentElement.classList.remove("has-case-reference");
     renderReferences([]);
 
-    const selectedParts = selectParts(selection);
     if (!selectedParts.length) {
       caption.textContent = "See your selected parts together using real product photos.";
       message.textContent = "Select parts from the catalog or click Seat flagship.";
@@ -352,93 +452,80 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     }
 
     message.textContent = "Loading product photos…";
-    const topRadiator = caseAsset || caseId === "case-montech-xr" ? 360
-      : caseId === "case-nzxt-h5-flow-2024" ? 240
-      : caseView ? 0 : 420;
-    const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, topRadiator);
-    const [caseImage, ...images] = await Promise.all([
-      caseView ? loadPreviewImage(caseView.src) : null,
-      ...layers.map(({ asset }) => loadPreviewImage(asset.src))
-    ]);
-    if (currentRevision !== revision) return;
-
-    const context = canvas.getContext("2d");
-    context.setTransform(canvas.width / CASE_WIDTH, 0, 0, canvas.height / CASE_HEIGHT, 0, 0);
-    context.clearRect(0, 0, CASE_WIDTH, CASE_HEIGHT);
     const shown = new Map();
-    let fullCaseBounds;
-    if (caseImage) {
-      const [left, top, cropWidth, cropHeight] = caseView.cutout?.[0] || [0, 0, 1, 1];
-      const frame = [0, 0, CASE_WIDTH, CASE_HEIGHT];
-      const caseBounds = caseAsset ? frame : containPhoto(
-        caseImage.naturalWidth * cropWidth, caseImage.naturalHeight * cropHeight, frame);
-      const [x, y, width, height] = caseBounds;
-      fullCaseBounds = [x - left * width / cropWidth, y - top * height / cropHeight,
-        width / cropWidth, height / cropHeight];
-      drawPreviewLayer(context, caseView, caseImage, caseBounds);
-      shown.set(cse.id, { part: cse, credit: caseView.credit });
-    } else if (casePhoto) {
-      exteriorImage.hidden = false;
-      exteriorImage.alt = cse.name;
-      exteriorImage.src = casePhoto.src;
-      exteriorLabel.textContent = cse.name + (casePhoto.variant ? " · " + casePhoto.variant : "");
-      exterior.hidden = false;
+    let mainPhoto = photoSubject;
+    let showTubes = false;
+    let hasPhotoBackdrop = false;
+    if (!mainPhoto) {
+      const topRadiator = caseAsset || caseId === "case-montech-xr" ? 360
+        : caseId === "case-nzxt-h5-flow-2024" ? 240
+        : caseView ? 0 : 420;
+      const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, topRadiator);
+      const [caseImage, ...images] = await Promise.all([
+        caseView ? loadCatalogImage(caseView.src, true) : null,
+        ...layers.map(({ asset }) => loadPreviewImage(asset.src))
+      ]);
+      if (currentRevision !== revision) return;
+
+      let caseLayer;
+      if (caseImage) {
+        caseLayer = caseAsset ? framePreviewLayer(caseView, caseImage, [0, 0, CASE_WIDTH, CASE_HEIGHT])
+          : frameProductPhoto(cse, caseView, caseImage);
+        hasPhotoBackdrop = !caseAsset;
+        shown.set(cse.id, { part: cse, credit: caseView.credit });
+      }
+      const visibleLayers = layers.flatMap(({ part, asset, bounds }, index) => {
+        if (!images[index]) return [];
+        shown.set(part.id, { part, credit: asset.credit });
+        return [{ ...framePreviewLayer(asset, images[index], bounds), part }];
+      });
+      showTubes = Boolean(tubes && visibleLayers.filter(({ part }) => part === cooler).length === 2);
+      if (caseLayer || visibleLayers.length) {
+        drawBuildScene(canvas, caseLayer, plane, visibleLayers, showTubes ? tubes : null, assets[cooler?.id]);
+        const names = [...shown.values()].map(({ part }) => part.name).join(", ");
+        caption.textContent = caseLayer
+          ? "Build from product photos. Scale, angles, and mounting positions are approximate."
+          : "Parts layout from product photos. Mounting positions are approximate.";
+        canvas.setAttribute("aria-label", (caseLayer ? "Assembled preview of " : "Parts layout of ") + names);
+      } else {
+        mainPhoto = photoChoices[0];
+      }
     }
 
-    context.save();
-    if (caseImage && !caseAsset) {
-      const [x, y, width, height] = fullCaseBounds;
-      const [[ox, oy], [rx, ry], [bx, by]] = plane;
-      context.transform((rx - ox) * width / 244, (ry - oy) * height / 244,
-        (bx - ox) * width / 305, (by - oy) * height / 305, x + ox * width, y + oy * height);
-      context.translate(-44, -55);
-    } else if (!caseImage && layers.length) {
-      const left = Math.min(...layers.map(({ bounds }) => bounds[0]));
-      const top = Math.min(...layers.map(({ bounds }) => bounds[1]));
-      const width = Math.max(...layers.map(({ bounds }) => bounds[0] + bounds[2])) - left;
-      const height = Math.max(...layers.map(({ bounds }) => bounds[1] + bounds[3])) - top;
-      const scale = Math.min(1.35, (CASE_WIDTH - 48) / width, (CASE_HEIGHT - 48) / height);
-      context.translate((CASE_WIDTH - width * scale) / 2, (CASE_HEIGHT - height * scale) / 2);
-      context.scale(scale, scale);
-      context.translate(-left, -top);
+    if (mainPhoto) {
+      const photo = photos[mainPhoto.id];
+      const image = await loadCatalogImage(photo.src);
+      if (currentRevision !== revision) return;
+      caption.textContent = photo.variant ? "Product photo · " + photo.variant : "Product photo";
+      if (image) {
+        const layer = frameProductPhoto(mainPhoto, photo, image);
+        drawPreviewLayer(framePreviewCanvas(canvas, layer.frame), layer);
+        shown.set(mainPhoto.id, { part: mainPhoto, credit: photo.credit });
+        canvas.setAttribute("aria-label", "Product photo of " + mainPhoto.name);
+      }
     }
-    const showTubes = tubes && images.filter((image, index) => image && layers[index].part === cooler).length === 2;
-    layers.forEach(({ part, asset, bounds }, index) => {
-      if (!images[index]) return;
-      if (showTubes && asset === assets[cooler.id]) drawCoolerTubes(context, tubes);
-      drawPreviewLayer(context, asset, images[index], bounds);
-      shown.set(part.id, { part, credit: asset.credit });
-    });
-    context.restore();
-    exterior.parentElement.classList.toggle("has-case-reference", !exterior.hidden && shown.size > 0);
 
-    const mixingAngles = !caseAsset || layers.some(({ asset }) => asset.cutout);
-    caption.textContent = caseImage
-      ? mixingAngles ? "Photo preview inside your case. Angles, scale, and mounting positions are approximate."
-        : "Side view assembled from exact-model product images. Placement is approximate."
-      : "Parts layout from your product photos. Mounting positions are approximate.";
-    canvas.setAttribute("aria-label", (caseImage ? "Assembled preview of " : "Parts layout of ")
-      + [...shown.values()].map(({ part }) => part.name).join(", "));
+    canvas.classList.toggle("product-photo", Boolean(mainPhoto || hasPhotoBackdrop));
     canvas.hidden = shown.size === 0;
-    message.hidden = shown.size > 0;
-    if (!message.hidden) {
-      message.textContent = selectedParts.length === 1 && cse
-        ? "Add a motherboard, cooler, or graphics card to see the layout."
-        : "Photos for these parts are below.";
+    message.hidden = !canvas.hidden;
+    fitPreviewHeight();
+    if (canvas.hidden) {
+      if (!mainPhoto) caption.textContent = "Selected part photos";
+      message.textContent = mainPhoto
+        ? "This product photo couldn’t load."
+        : "Photo availability for your build is shown below.";
     }
 
-    const cpuCovered = canHideCooler && shown.has(cooler.id);
+    const cpuCovered = !mainPhoto && canHideCooler && shown.has(cooler.id);
     const notices = [];
     if (showTubes) notices.push("Tube routing is approximate.");
     if (cpuCovered) notices.push(cpu.short + " is under the cooler.");
     coverage.textContent = notices.join(" ");
     coverage.hidden = !notices.length;
 
-    const referenceParts = selectedParts.filter((part) => !shown.has(part.id)
-      && !(part === cse && casePhoto) && !(part === cpu && cpuCovered));
-    renderReferences(referenceParts);
+    const referenceParts = selectedParts.filter((part) => !shown.has(part.id) && !(part === cpu && cpuCovered));
+    if (!photoSubject || !shown.size) renderReferences(referenceParts);
     const credits = [...shown.values()];
-    if (!caseImage && casePhoto) credits.push({ part: cse, credit: casePhoto.credit });
     links.replaceChildren();
     for (const { part, credit } of credits) {
       const item = document.createElement("li");

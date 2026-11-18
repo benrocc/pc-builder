@@ -220,10 +220,19 @@
       gap: 6px;
       min-height: 34px;
     }
-    .preview-options select {
+    .preview-subject:not([hidden]) {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .preview-options select, .preview-subject select {
       display: block;
       width: 100%;
-      margin-top: 4px;
+      min-width: 0;
       font: inherit;
       color: var(--text);
       background: var(--panel);
@@ -231,41 +240,16 @@
       border-radius: 5px;
       padding: 8px;
     }
-    .preview-visuals {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
-      margin-top: 12px;
-    }
-    .preview-visuals.has-case-reference {
-      grid-template-columns: minmax(98px, 1fr) minmax(0, 2.25fr);
-      align-items: start;
-    }
-    .preview-case-reference {
-      margin: 0;
-      color: var(--muted);
-      font-size: 12px;
-      overflow-wrap: anywhere;
-    }
-    .preview-case-reference img {
-      display: block;
-      width: 100%;
-      min-height: 75px;
-      max-height: 220px;
-      padding: 5px;
-      object-fit: contain;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      background: #f4f4f4;
-    }
-    .preview-case-reference img[hidden] { display: none; }
-    .preview-case-reference figcaption { margin-top: 6px; }
+    .preview-options select { margin-top: 4px; }
+    .preview-subject select { flex: 1; }
     #preview-references { margin-top: 14px; }
     #bay {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       place-items: center;
-      min-height: 190px;
-      padding: 12px;
+      min-height: 220px;
+      margin-top: 12px;
+      padding: clamp(10px, 1.5vw, 22px);
       border: 1px solid var(--line);
       border-radius: 8px;
       background: radial-gradient(ellipse at 50% 38%, #303a37, #151b19);
@@ -275,8 +259,10 @@
       width: auto;
       height: auto;
       max-width: 100%;
-      max-height: clamp(245px, calc(100svh - 338px), 520px);
-      aspect-ratio: 478 / 493;
+      max-height: min(var(--preview-height, max(200px, 55svh)), 680px);
+    }
+    #preview-canvas.product-photo {
+      border-radius: 6px;
     }
     #preview-message { max-width: 28ch; margin: 0; text-align: center; }
     #preview-clearance { color: var(--ok); font-variant-numeric: tabular-nums; }
@@ -339,7 +325,7 @@
       .app { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
       .list, .bill { border: 0; border-top: 1px solid var(--line); max-height: none; }
       .stage { overflow: visible; }
-      #preview-canvas { max-height: min(70svh, 520px); }
+      #preview-canvas { max-height: min(68svh, 640px); }
       header { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
     }
   </style>
@@ -369,20 +355,17 @@
       </div>
       <div id="assembled-panel">
         <p class="preview-caption" id="preview-caption">See your selected parts together using real product photos.</p>
+        <label class="preview-subject" id="preview-subject-label" hidden>Show in center
+          <select id="preview-subject"></select>
+        </label>
         <div class="preview-options" id="preview-options" hidden>
           <label>Case color<select id="preview-case"><option value="" disabled>Choose a color</option></select></label>
           <label>Graphics card<select id="preview-gpu"><option value="" disabled>Choose a graphics card</option></select></label>
           <label class="preview-layer-toggle" hidden><input type="checkbox" id="preview-hide-cooler">Hide cooler to see CPU</label>
         </div>
-        <div class="preview-visuals">
-          <figure id="preview-case-reference" class="preview-case-reference" hidden>
-            <img referrerpolicy="no-referrer" alt="">
-            <figcaption></figcaption>
-          </figure>
-          <div id="bay" aria-label="Case bay, drop parts here">
-            <canvas id="preview-canvas" width="956" height="986" role="img" hidden></canvas>
-            <p id="preview-message" role="status">Select parts from the catalog or click Seat flagship.</p>
-          </div>
+        <div id="bay" aria-label="Case bay, drop parts here">
+          <canvas id="preview-canvas" role="img" hidden></canvas>
+          <p id="preview-message" role="status">Select parts from the catalog or click Seat flagship.</p>
         </div>
         <p class="preview-note" id="preview-clearance" aria-live="polite" hidden></p>
         <p class="preview-note" id="preview-coverage" role="status" hidden></p>
@@ -412,8 +395,8 @@
       <div id="bill" aria-live="polite"></div>
     </aside>
   </div>
-  <script src="photo-cutouts.js"></script>
-  <script src="preview.js?v=3"></script>
+  <script src="photo-cutouts.js?v=2"></script>
+  <script src="preview.js?v=4"></script>
   <script src="prices.js"></script>
   <script src="part-photos.js?v=2"></script>
   <script>
