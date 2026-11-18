@@ -326,19 +326,20 @@ function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) 
   const [socketX, socketY] = layout.socket;
 
   let slotOffset = 0;
-  const stickCount = Math.min(selection.ram.reduce((total, kit) => total + kit.sticks, 0), 4);
-  const dimmSlots = [[], [1], [1, 3], [1, 2, 3], [0, 1, 2, 3]][stickCount];
+  const memorySlots = board?.form === "itx" ? 2 : 4;
+  const stickCount = Math.min(selection.ram.reduce((total, kit) => total + kit.sticks, 0), memorySlots);
+  const dimmSlots = memorySlots === 2 ? [[], [0], [0, 1]][stickCount]
+    : [[], [1], [1, 3], [0, 1, 3], [0, 1, 2, 3]][stickCount];
+  const dimmX = memorySlots === 2
+    ? [44 + boardWidth * .80, 44 + boardWidth * .91]
+    : layout.dimmX;
   for (const kit of selection.ram) {
-    if (assets[kit.id]) {
+    const face = assets[kit.id] || (RAM_PREVIEW_FACES[kit.id] && {
+      ...photos[kit.id], ...RAM_PREVIEW_FACES[kit.id]
+    });
+    if (face) {
       for (const slot of dimmSlots.slice(slotOffset, slotOffset + kit.sticks)) {
-        add(kit, [layout.dimmX[slot], layout.dimmY, 7, 137]);
-      }
-    } else {
-      const cutout = generic(kit);
-      const slot = dimmSlots[slotOffset];
-      if (cutout && slot !== undefined) {
-        const width = kit.sticks === 1 ? 21 : 35;
-        add(kit, [layout.dimmX[slot] - 6, layout.dimmY, width, 136], { ...cutout, vertical: true });
+        add(kit, [dimmX[slot], layout.dimmY, 7, 133.35], face);
       }
     }
     slotOffset += kit.sticks;
@@ -356,11 +357,7 @@ function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) 
     add(cooler, [51, 23, radiatorWidth, 70], { ...radiator, credit: pump.credit });
     tubes = { radiatorX: 51 + radiatorWidth, pumpX: socketX + 40, pumpY: socketY };
     add(cooler, [socketX - 34, socketY - 49, 78, 92]);
-  } else if (radiatorSize) {
-    if (radiatorSize <= topRadiatorLimit) {
-      add(cooler, [44, 12, radiatorSize * CASE_DEPTH_SCALE, 99], generic(cooler));
-    }
-  } else if (cooler) {
+  } else if (cooler && !radiatorSize && pump) {
     add(cooler, [socketX - 63, socketY - 60, 125, 120]);
   }
   if (gpu) {
