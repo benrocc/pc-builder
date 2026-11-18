@@ -54,6 +54,22 @@ const CASE_PHOTO_PLANES = {
   "case-deepcool-cg530-4f": [[.302, .329], [.533, .207], [.247, .8]]
 };
 const CASE_INTERIOR_PHOTOS = {
+  "case-lian-li-vector-v100r": {
+    src: "https://lian-li.com/wp-content/uploads/2025/06/V100_013.jpg",
+    credit: "https://lian-li.com/product/vector-v100/",
+    trim: [.102, .037, .785, .947],
+    plane: [[.289, .319], [.583, .254], [.307, .727]],
+    // The card's exposed edge sits closer to the glass than the board tray.
+    // Rear edge, far end of the available GPU span, and 100 mm down.
+    gpuMount: { spanMm: 420, plane: [[.183, .56], [.729, .54], [.183, .665]] }
+  },
+  "case-lian-li-vector-v100r-mini": {
+    src: "https://lian-li.com/wp-content/uploads/2025/12/v100mini_002.jpg",
+    credit: "https://lian-li.com/product/vector-v100-mini/",
+    trim: [.085, .075, .83, .849],
+    plane: [[.177, .181], [.619, .181], [.177, .731]],
+    gpuMount: { spanMm: 415, plane: [[.139, .49], [.899, .49], [.139, .673]] }
+  },
   "case-fractal-design-north": {
     src: "https://cdn.hstatic.net/products/200000522135/north_charcoal_black_tg_dark_7_44a79bfca06b4a4d98a393dd9f36a6a8_master.png",
     credit: "https://www.loctai.com/products/thung-may-tinh-case-fractal-design-north-charcoal-black-tg-dark",
@@ -123,6 +139,21 @@ const PREVIEW_ASSETS = {
     src: "https://assets.mmsrg.com/isr/166325/c1/-/ASSET_MP_172087586?align=center&cdx=536&cdy=402&cox=0&coy=0&ex=536&ey=402&format=jpg&quality=80&resizesource=&sp=yes&strip=yes&trim=&unsharp=1.5x1+0.7+0.02&x=536&y=402",
     credit: "https://www.mediaworld.it/it/product/_memoria-ram-patriot-memory-viper-venom-pvv532g600c30k-155799285.html",
     basis: [[.211, .059], [.191, .079], [.794, .671]]
+  },
+  "gpu-asus-rog-astral-oc-geforce-rtx-5090": {
+    src: "https://dlcdnwebimgs.asus.com/gain/08D2582A-DE6B-453B-84B0-CA983FBE1A33/w1000/h732",
+    credit: "https://rog.asus.com/graphics-cards/graphics-cards/rog-astral/rog-astral-rtx5090-o32g-gaming/gallery/",
+    crop: [24, 268, 685, 130]
+  },
+  "gpu-asus-rog-astral-oc-geforce-rtx-5080": {
+    src: "https://dlcdnwebimgs.asus.com/gain/8E9CF564-E553-4F94-B213-AB9F5AB53791/w1000/h732",
+    credit: "https://rog.asus.com/graphics-cards/graphics-cards/rog-astral/rog-astral-rtx5080-o16g-gaming/gallery/",
+    crop: [24, 268, 685, 130]
+  },
+  "gpu-asus-tuf-gaming-oc-geforce-rtx-5070-ti": {
+    src: "https://dlcdnwebimgs.asus.com/gain/ea4b4d00-805b-4a9f-a61f-93235dfe6632/w800",
+    credit: "https://www.asus.com/us/motherboards-components/graphics-cards/tuf-gaming/tuf-rtx5070ti-o16g-gaming/",
+    crop: [32, 296, 744, 114]
   },
   [GPU_VARIANTS[0]]: {
     src: "https://lanoc.org/images/reviews/2025/nvidia_rtx_5090_fe/image_32.jpg",
@@ -318,9 +349,11 @@ function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) 
     add(cooler, [socketX - 63, socketY - 60, 125, 120]);
   }
   if (gpu) {
-    const width = Math.min((gpu.lengthMm || 300) * CASE_DEPTH_SCALE, 397);
-    const height = assets[gpu.id] ? gpu.thicknessMm : 122;
-    add(gpu, [43, layout.gpuY, width, height]);
+    const profile = assets[gpu.id];
+    if (profile || !selection.case) {
+      const width = Math.min((gpu.lengthMm || 300) * CASE_DEPTH_SCALE, 397);
+      add(gpu, [43, layout.gpuY, width, profile ? gpu.thicknessMm : 122], profile || generic(gpu));
+    }
   }
   return { layers, tubes };
 }
@@ -341,6 +374,16 @@ function drawCoolerTubes(context, { radiatorX, pumpX, pumpY }) {
   context.restore();
 }
 
+function projectCasePlane(context, caseLayer, [[ox, oy], [rx, ry], [bx, by]], spanX, spanY) {
+  const [x, y, width, height] = caseLayer.frame;
+  const [left, top, cropWidth, cropHeight] = caseLayer.asset.cutout?.[0] || [0, 0, 1, 1];
+  const rawWidth = width / cropWidth;
+  const rawHeight = height / cropHeight;
+  context.transform((rx - ox) * rawWidth / spanX, (ry - oy) * rawHeight / spanX,
+    (bx - ox) * rawWidth / spanY, (by - oy) * rawHeight / spanY,
+    x + (ox - left) * rawWidth, y + (oy - top) * rawHeight);
+}
+
 function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump) {
   let frame;
   if (caseLayer) {
@@ -350,6 +393,8 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
     if (tubes) frame[2] = Math.max(frame[2], tubes.radiatorX + 16 - frame[0]);
   }
   const context = framePreviewCanvas(canvas, frame);
+  const projection = context.getTransform();
+  const gpuMount = caseLayer?.asset.gpuMount;
   if (caseLayer) {
     const [x, y, width, height] = caseLayer.frame;
     context.save();
@@ -357,13 +402,7 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
     drawPreviewLayer(context, caseLayer);
     context.restore();
     if (plane) {
-      const [left, top, cropWidth, cropHeight] = caseLayer.asset.cutout?.[0] || [0, 0, 1, 1];
-      const [[ox, oy], [rx, ry], [bx, by]] = plane;
-      const rawWidth = width / cropWidth;
-      const rawHeight = height / cropHeight;
-      context.transform((rx - ox) * rawWidth / 244, (ry - oy) * rawHeight / 244,
-        (bx - ox) * rawWidth / 305, (by - oy) * rawHeight / 305,
-        x + (ox - left) * rawWidth, y + (oy - top) * rawHeight);
+      projectCasePlane(context, caseLayer, plane, 244, 305);
       context.translate(-44, -55);
     } else if (estimated) {
       const [partsX, partsY, partsWidth, partsHeight] = sceneFrame(layers);
@@ -377,6 +416,14 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
   }
   for (const layer of layers) {
     if (tubes && layer.asset === pump) drawCoolerTubes(context, tubes);
+    if (gpuMount && layer.part.cat === "gpu") {
+      context.save();
+      context.setTransform(projection);
+      projectCasePlane(context, caseLayer, gpuMount.plane, gpuMount.spanMm, 100);
+      drawPreviewLayer(context, { ...layer, frame: [0, 0, layer.part.lengthMm, layer.frame[3]] });
+      context.restore();
+      continue;
+    }
     drawPreviewLayer(context, layer);
   }
 }
@@ -502,7 +549,8 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     let showTubes = false;
     let hasPhotoBackdrop = false;
     if (!mainPhoto) {
-      const topRadiator = caseAsset || caseId === "case-montech-xr" ? 360
+      const vectorCase = caseId === "case-lian-li-vector-v100r" || caseId === "case-lian-li-vector-v100r-mini";
+      const topRadiator = caseAsset || vectorCase || caseId === "case-montech-xr" ? 360
         : caseId === "case-nzxt-h5-flow-2024" || caseId === "case-fractal-design-north" ? 240
         : caseView ? 0 : 420;
       const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, topRadiator);
@@ -576,6 +624,9 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     const notices = [];
     if (showTubes) notices.push("Tube routing is approximate.");
     if (cpuCovered) notices.push(cpu.short + " is under the cooler.");
+    if (!mainPhoto && cse && gpu && !shown.has(gpu.id) && photos[gpu.id]) {
+      notices.push("Graphics card product photo below.");
+    }
     coverage.textContent = notices.join(" ");
     coverage.hidden = !notices.length;
 
