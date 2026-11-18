@@ -10,6 +10,9 @@ const CASE_HEIGHT = 493;
 // The rear expansion slot to front fan span is 369 units in the case photo.
 const CASE_DEPTH_SCALE = 369 / 400;
 const BOARD_LAYOUTS = {
+  "board-b650": {
+    socket: [174, 157], dimmX: [227, 237, 247, 258], dimmY: 90, gpuY: 257
+  },
   "board-b850": {
     socket: [174, 154], dimmX: [224, 235, 246, 257], dimmY: 85, gpuY: 241
   },
@@ -21,7 +24,6 @@ const BOARD_SIZES = { atx: [244, 305], eatx: [277, 305], matx: [244, 244], itx: 
 // Rear-top, front-top, and rear-bottom of the motherboard footprint in
 // selected case photos. Points use the original image's normalized coordinates.
 const CASE_PHOTO_PLANES = {
-  "case-h5": [[.255, .365], [.53, .285], [.25, .705]],
   "case-montech-xr": [[.25, .30], [.53, .225], [.25, .695]],
   "case-phanteks-xt-pro": [[.285, .29], [.58, .19], [.28, .74]],
   "case-lian-li-vector-v100r": [[.29, .31], [.62, .23], [.285, .73]],
@@ -54,6 +56,14 @@ const CASE_PHOTO_PLANES = {
   "case-deepcool-cg530-4f": [[.302, .329], [.533, .207], [.247, .8]]
 };
 const CASE_INTERIOR_PHOTOS = {
+  "case-h5": {
+    src: "https://i.pepita.hu/images/product/3772848/gehause-nzxt-midi-h5-flow-edition-mattschwarz-cc-h51fb-01_47514956_1200x630.jpg",
+    credit: "https://pepita.com/de/computergehause-c2782/gehause-nzxt-midi-h5-flow-edition-mattschwarz-cc-h51fb-01-p3772848",
+    trim: [.300, .137, .363, .717],
+    plane: [[.329, .227], [.519, .227], [.329, .679]],
+    straightOn: true,
+    partBrightness: .78
+  },
   "case-lian-li-vector-v100r": {
     src: "https://lian-li.com/wp-content/uploads/2025/06/V100_013.jpg",
     credit: "https://lian-li.com/product/vector-v100/",
@@ -94,6 +104,11 @@ const PREVIEW_ASSETS = {
     src: "https://storage-asset.msi.com/global/picture/product/product_1736159752859b0d59d04f539fee0f53b5742d9275.webp",
     credit: "https://www.msi.com/Motherboard/MAG-B850-TOMAHAWK-MAX-WIFI/Gallery",
     crop: [205, 46, 590, 708]
+  },
+  "board-b650": {
+    src: "https://cdna.pcpartpicker.com/static/forever/images/product/ff33ebb87ed9f5fa5f9c54d6d316ae82.jpg",
+    credit: "https://www.msi.com/Motherboard/B650-GAMING-PLUS-WIFI/Gallery",
+    cutout: PHOTO_CUTOUTS["board-b650"]
   },
   "board-gigabyte-z790-eagle-ax": {
     src: "https://www.avadirect.com/Pictures/Big/17308506_1.png",
@@ -401,6 +416,9 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
     if (estimated) context.globalAlpha = .52;
     drawPreviewLayer(context, caseLayer);
     context.restore();
+    if (caseLayer.asset.partBrightness) {
+      context.filter = "brightness(" + caseLayer.asset.partBrightness + ")";
+    }
     if (plane) {
       projectCasePlane(context, caseLayer, plane, 244, 305);
       context.translate(-44, -55);
@@ -550,8 +568,9 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     let hasPhotoBackdrop = false;
     if (!mainPhoto) {
       const vectorCase = caseId === "case-lian-li-vector-v100r" || caseId === "case-lian-li-vector-v100r-mini";
+      const h5Flow = caseId === "case-h5" || caseId === "case-nzxt-h5-flow-2024";
       const topRadiator = caseAsset || vectorCase || caseId === "case-montech-xr" ? 360
-        : caseId === "case-nzxt-h5-flow-2024" || caseId === "case-fractal-design-north" ? 240
+        : h5Flow || caseId === "case-fractal-design-north" ? 240
         : caseView ? 0 : 420;
       const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, topRadiator);
       const [preferredCaseImage, ...images] = await Promise.all([
@@ -562,7 +581,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
 
       let caseImage = preferredCaseImage;
       let renderedCase = caseView;
-      if (!caseImage && casePhoto && casePhoto !== caseView) {
+      if (!caseImage && casePhoto && casePhoto !== caseView && !interiorPhoto?.straightOn) {
         caseImage = await loadCatalogImage(casePhoto.src, Boolean(CASE_PHOTO_PLANES[caseId]));
         renderedCase = casePhoto;
         if (currentRevision !== revision) return;
@@ -587,7 +606,11 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
         drawBuildScene(canvas, caseLayer, plane, estimated, visibleLayers, showTubes ? tubes : null, assets[cooler?.id]);
         const names = [...shown.values()].map(({ part }) => part.name).join(", ");
         if (estimated) caption.textContent = "Case and parts shown together with estimated mounting positions.";
-        else if (caseLayer && visibleLayers.length) {
+        else if (!caseLayer && interiorPhoto?.straightOn) {
+          caption.textContent = "Parts layout. The straight-on case photo couldn’t load.";
+        } else if (caseLayer && renderedCase?.straightOn && visibleLayers.length) {
+          caption.textContent = "Straight-on side view from product photos. Mounting positions are approximate.";
+        } else if (caseLayer && visibleLayers.length) {
           caption.textContent = "Build from product photos. Scale, angles, and mounting positions are approximate.";
         } else if (caseLayer) caption.textContent = "Case and selected part photos.";
         else caption.textContent = "Parts layout from product photos. Mounting positions are approximate.";
