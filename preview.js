@@ -228,7 +228,7 @@ function containPhoto(width, height, [x, y, maxWidth, maxHeight]) {
 }
 
 function previewSource(asset, image) {
-  const crop = asset.cutout?.[0];
+  const crop = asset.region || asset.cutout?.[0];
   return crop
     ? crop.map((value, index) => value * (index % 2 === 0 ? image.naturalWidth : image.naturalHeight))
     : asset.crop || [0, 0, image.naturalWidth, image.naturalHeight];
@@ -244,11 +244,43 @@ function framePreviewLayer(asset, image, bounds) {
   return { asset, image, source, frame, rotate };
 }
 
+function clipPreviewPhoto(context, cutout) {
+  if (!cutout) return;
+  const [[left, top, width, height], mw, mh, encoded] = cutout;
+  context.beginPath();
+  if (encoded) {
+    const runs = atob(encoded);
+    for (let i = 0; i < runs.length; i += 4) {
+      context.rect(left + runs.charCodeAt(i) / mw * width,
+        top + runs.charCodeAt(i + 1) / mh * height,
+        runs.charCodeAt(i + 2) / mw * width, runs.charCodeAt(i + 3) / mh * height);
+    }
+  } else context.rect(left, top, width, height);
+  context.clip();
+}
+
 function drawPreviewLayer(context, { asset, image, source, frame, rotate }) {
   const [x, y, width, height] = frame;
   context.save();
   context.translate(x, y);
   context.scale(width, height);
+  if (asset.solidSide) {
+    const shade = context.createLinearGradient(0, 0, 0, 1);
+    shade.addColorStop(0, asset.solidSide);
+    shade.addColorStop(.15, asset.solidSide);
+    shade.addColorStop(1, asset.solidSide === '#e1e4e6' ? '#a5acb2' : '#08090b');
+    context.fillStyle = shade;
+    context.fillRect(0, 0, 1, 1);
+    context.strokeStyle = asset.solidSide === '#e1e4e6' ? '#dce2e6' : '#474a4e';
+    context.lineWidth = .015;
+    context.strokeRect(.005, .01, .99, .97);
+    context.restore();
+    return;
+  }
+  if (asset.targetBasis) {
+    const [[ox, oy], [rx, ry], [bx, by]] = asset.targetBasis;
+    context.transform(rx - ox, ry - oy, bx - ox, by - oy, ox, oy);
+  }
   if (rotate) {
     context.translate(1, 0);
     context.rotate(Math.PI / 2);
@@ -269,6 +301,11 @@ function drawPreviewLayer(context, { asset, image, source, frame, rotate }) {
     context.closePath();
     context.clip();
   }
+  if (asset.round) {
+    context.beginPath();
+    context.ellipse(.5, .5, .5, .5, 0, 0, Math.PI * 2);
+    context.clip();
+  }
   if (asset.basis) {
     // Rectify the sampled face of an angled product image into the side view.
     const [[ox, oy], [rx, ry], [bx, by]] = asset.basis;
@@ -278,6 +315,15 @@ function drawPreviewLayer(context, { asset, image, source, frame, rotate }) {
     context.clip();
     const { a, b, c, d, e, f } = sourceTransform;
     context.transform(a, b, c, d, e, f);
+    clipPreviewPhoto(context, asset.sourceCutout);
+    context.drawImage(image, 0, 0, 1, 1);
+  } else if (asset.sourceCutout) {
+    context.beginPath();
+    context.rect(0, 0, 1, 1);
+    context.clip();
+    const [sx, sy, sw, sh] = source.map((n, i) => n / (i % 2 ? image.naturalHeight : image.naturalWidth));
+    context.transform(1 / sw, 0, 0, 1 / sh, -sx / sw, -sy / sh);
+    clipPreviewPhoto(context, asset.sourceCutout);
     context.drawImage(image, 0, 0, 1, 1);
   } else {
     const [sx, sy, sw, sh] = source;
@@ -305,11 +351,11 @@ function sceneFrame(layers) {
   return [left, top, right - left, bottom - top];
 }
 
-function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) {
+function previewLayers(selection, assets, photos, hideCooler, radiatorLimits, showHiddenParts = true) {
   const layers = [];
   const generic = (part) => catalogPreview(part, photos);
-  function add(part, bounds, asset = assets[part?.id] || generic(part)) {
-    if (asset) layers.push({ part, asset, bounds });
+  function add(part, bounds, asset = assets[part?.id] || generic(part), component) {
+    if (part && asset) layers.push({ part, asset, bounds, component });
   }
 
   const board = selection.motherboard;
@@ -348,35 +394,84 @@ function previewLayers(selection, assets, photos, hideCooler, topRadiatorLimit) 
   if (selection.cpu && !cooler && selection.cpu.socket === board?.socket) {
     add(selection.cpu, [socketX - 18.75, socketY - 22.5, 37.5, 45]);
   }
-  const pump = assets[cooler?.id];
-  const radiator = pump?.radiator;
+  const profile = COOLER_PREVIEW_FACES[cooler?.id];
   let tubes;
-  const radiatorSize = Number(cooler?.spec.match(/\b(120|140|240|280|360|420) mm\b/)?.[1]);
-  if (radiator && topRadiatorLimit >= 360) {
-    const radiatorWidth = radiator.lengthMm * CASE_DEPTH_SCALE;
-    add(cooler, [51, 23, radiatorWidth, 70], { ...radiator, credit: pump.credit });
-    tubes = { radiatorX: 51 + radiatorWidth, pumpX: socketX + 40, pumpY: socketY };
-    add(cooler, [socketX - 34, socketY - 49, 78, 92]);
-  } else if (cooler && !radiatorSize && pump) {
-    add(cooler, [socketX - 63, socketY - 60, 125, 120]);
+  if (profile?.radiator) {
+    const radiatorSize = profile.radiator.sizeMm;
+    const limits = typeof radiatorLimits === "number" ? { top: radiatorLimits, front: 0 } : radiatorLimits || {};
+    const front = limits.top < radiatorSize && limits.front >= radiatorSize;
+    const length = (profile.radiatorLengthMm || radiatorSize + 35) * CASE_DEPTH_SCALE;
+    const stack = profile.stackMm || 55;
+    const [pw, ph] = profile.pumpMm || [74, 74];
+    const base = { src: profile.src, credit: profile.credit,
+      sourceCutout: profile.customPhoto ? undefined : PHOTO_CUTOUTS[cooler.id] };
+    const fanAsset = { ...base, ...profile.radiator };
+    // A top mount exposes the fan bank at a shallow angle. The front mount
+    // turns the same real fan bank vertically, rather than moving the whole AIO.
+    const bounds = front ? [345, 50, stack, length] : [43, 12, length, stack];
+    const rail = { ...base, solidSide: profile.casing };
+    if (front) {
+      fanAsset.targetBasis = [[.63, 0], [.63, 1], [1, .02]];
+      rail.targetBasis = [[0, 0], [0, 1], [.63, 0]];
+    } else {
+      fanAsset.targetBasis = [[.02, .65], [1, .65], [0, 1]];
+      rail.targetBasis = [[.02, 0], [1, 0], [.02, .65]];
+    }
+    if (profile.radiator.side) {
+      add(cooler, bounds, { ...base, ...profile.radiator.side, sourceCutout: undefined, vertical: front }, "radiator-fans");
+    } else {
+      // The metal sidewall hides most of the fan faces in the side-on view.
+      const [x, y, w, h] = bounds;
+      add(cooler, front ? [x, y, w * .63, h] : [x + w * .02, y, w * .98, h * .65], rail, "radiator");
+      add(cooler, bounds, fanAsset, "radiator-fans");
+    }
+    tubes = { mount: front ? "front" : "top",
+      start: front ? [345, 68] : [43 + length - 10, 52],
+      end: [socketX + pw / 2 - 5, socketY + ph * .18] };
+    add(cooler, [socketX - pw / 2, socketY - ph / 2, pw, ph],
+      { ...base, ...profile.pump, sourceCutout: profile.pump.src ? undefined : base.sourceCutout }, "cooler-block");
+  } else if (cooler) {
+    const air = assets[cooler.id] || (profile && { ...profile,
+      ...(profile.useCutout ? { cutout: PHOTO_CUTOUTS[cooler.id] }
+        : { sourceCutout: PHOTO_CUTOUTS[cooler.id] }) });
+    const lowProfile = /(?:nh-l9|axp90|alpine|wraith|i30|meorb|e97379)/i.test(cooler.id);
+    const width = lowProfile ? 95 : 125;
+    const height = lowProfile ? 95 : 120;
+    add(cooler, [socketX - width / 2, socketY - height / 2, width, height], air, "cooler-block");
   }
   if (gpu) {
-    const profile = assets[gpu.id];
+    const profile = assets[gpu.id] || PART_MOUNT_FACES[gpu.id];
     if (profile || !selection.case) {
       const width = Math.min((gpu.lengthMm || 300) * CASE_DEPTH_SCALE, 397);
-      add(gpu, [43, layout.gpuY, width, profile ? gpu.thicknessMm : 122], profile || generic(gpu));
+      add(gpu, [43, layout.gpuY, width, profile ? gpu.thicknessMm || 48 : 122],
+        profile || generic(gpu), "graphics-card");
+    }
+  }
+  if (showHiddenParts) {
+    const psuPhoto = PART_MOUNT_FACES[selection.psu?.id] || photos[selection.psu?.id];
+    if (psuPhoto) add(selection.psu, [42, 380, 150, 65],
+      psuPhoto, "psu-cutaway");
+    let nvme = 0, sata = 0;
+    for (const drive of selection.storage || []) {
+      const photo = PART_MOUNT_FACES[drive.id] || photos[drive.id];
+      if (!photo) continue;
+      const isSata = /SATA/i.test(drive.spec);
+      const bounds = isSata ? [228 + (sata % 2) * 78, 377 + Math.floor(sata++ / 2) * 29, 72, 44]
+        : [126, 225 + nvme++ * 37, 80, 22];
+      add(drive, bounds, { ...photo, cutout: PART_MOUNT_FACES[drive.id]?.cutout }, "drive-cutaway");
     }
   }
   return { layers, tubes };
 }
 
-function drawCoolerTubes(context, { radiatorX, pumpX, pumpY }) {
+function drawCoolerTubes(context, { mount, start: [sx, sy], end: [ex, ey] }) {
   context.save();
   context.lineCap = "round";
   for (const offset of [0, 11]) {
     context.beginPath();
-    context.moveTo(radiatorX - 13 - offset, 51);
-    context.bezierCurveTo(radiatorX + 53 - offset, 147, radiatorX - 72, pumpY + 56 - offset, pumpX, pumpY + 12 - offset);
+    context.moveTo(sx - offset, sy);
+    context.bezierCurveTo(mount === "front" ? sx - 65 : Math.min(412, sx + 32) - offset,
+      sy + 68, ex + 65, ey + 49 - offset, ex, ey + 12 - offset);
     for (const [color, width] of [["#0d0e10", 10], ["#2a2c2f", 7], ["#3c3e41", 2]]) {
       context.strokeStyle = color;
       context.lineWidth = width;
@@ -402,7 +497,7 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
     frame = caseLayer.frame;
   } else {
     frame = sceneFrame(layers);
-    if (tubes) frame[2] = Math.max(frame[2], tubes.radiatorX + 16 - frame[0]);
+    if (tubes) frame[2] = Math.max(frame[2], tubes.start[0] + 30 - frame[0]);
   }
   const context = framePreviewCanvas(canvas, frame);
   const projection = context.getTransform();
@@ -430,7 +525,18 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
     }
   }
   for (const layer of layers) {
-    if (tubes && layer.asset === pump) drawCoolerTubes(context, tubes);
+    if (tubes && layer.component === "cooler-block") drawCoolerTubes(context, tubes);
+    if (layer.component?.endsWith("-cutaway")) {
+      context.save();
+      const [x, y, width, height] = layer.frame;
+      context.fillStyle = "rgba(18, 23, 23, .88)";
+      context.fillRect(x - 3, y - 3, width + 6, height + 6);
+      context.setLineDash([3, 3]);
+      context.strokeStyle = "#9bafaa";
+      context.lineWidth = .75;
+      context.strokeRect(x - 3, y - 3, width + 6, height + 6);
+      context.restore();
+    }
     if (gpuMount && layer.part.cat === "gpu") {
       context.save();
       context.setTransform(projection);
@@ -475,6 +581,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
   const caseSelect = document.getElementById("preview-case");
   const gpuSelect = document.getElementById("preview-gpu");
   const cpuToggle = document.getElementById("preview-hide-cooler");
+  const cutawayToggle = document.getElementById("preview-cutaway");
   const subjectSelect = document.getElementById("preview-subject");
   let revision = 0;
   let activeSelection;
@@ -497,6 +604,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
   }
 
   cpuToggle.addEventListener("change", () => renderPreview(activeSelection));
+  cutawayToggle.addEventListener("change", () => renderPreview(activeSelection));
   subjectSelect.addEventListener("change", () => renderPreview(activeSelection));
 
   async function renderPreview(selection) {
@@ -529,7 +637,8 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     caseSelect.parentElement.hidden = Boolean(photoSubject || !caseAsset);
     gpuSelect.parentElement.hidden = Boolean(photoSubject || !caseAsset);
     cpuToggle.parentElement.hidden = Boolean(photoSubject || !canHideCooler);
-    controls.hidden = Boolean(photoSubject || (!caseAsset && !canHideCooler));
+    cutawayToggle.parentElement.hidden = Boolean(photoSubject || (!selection.psu && !selection.storage?.length));
+    controls.hidden = Boolean(photoSubject || (!caseAsset && !canHideCooler && cutawayToggle.parentElement.hidden));
     caseSelect.value = caseId ?? "";
     // Keep the current catalog selection visible alongside the two side-on options.
     if (gpuSelect.options.length > GPU_VARIANTS.length + 1) gpuSelect.remove(gpuSelect.options.length - 1);
@@ -566,10 +675,11 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     if (!mainPhoto) {
       const vectorCase = caseId === "case-lian-li-vector-v100r" || caseId === "case-lian-li-vector-v100r-mini";
       const h5Flow = caseId === "case-h5" || caseId === "case-nzxt-h5-flow-2024";
-      const topRadiator = caseAsset || vectorCase || caseId === "case-montech-xr" ? 360
+      const topRadiator = cse?.radiatorTopMm ?? (caseAsset || vectorCase || caseId === "case-montech-xr" ? 360
         : h5Flow || caseId === "case-fractal-design-north" ? 240
-        : caseView ? 0 : 420;
-      const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, topRadiator);
+        : 420);
+      const radiatorLimits = { top: topRadiator, front: cse?.radiatorFrontMm || 0 };
+      const { layers, tubes } = previewLayers(selection, assets, photos, cpuToggle.checked, radiatorLimits, cutawayToggle.checked);
       const [preferredCaseImage, ...images] = await Promise.all([
         caseView ? loadCatalogImage(caseView.src, Boolean(CASE_PHOTO_PLANES[caseId])) : null,
         ...layers.map(({ asset }) => loadPreviewImage(asset.src))
@@ -592,12 +702,13 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
         hasPhotoBackdrop = !sidePhoto;
         shown.set(cse.id, { part: cse, credit: renderedCase.credit });
       }
-      const visibleLayers = layers.flatMap(({ part, asset, bounds }, index) => {
+      const visibleLayers = layers.flatMap(({ part, asset, bounds, component }, index) => {
         if (!images[index]) return [];
         shown.set(part.id, { part, credit: asset.credit });
-        return [{ ...framePreviewLayer(asset, images[index], bounds), part }];
+        return [{ ...framePreviewLayer(asset, images[index], bounds), part, component }];
       });
-      showTubes = Boolean(tubes && visibleLayers.filter(({ part }) => part === cooler).length === 2);
+      showTubes = Boolean(tubes && visibleLayers.some(l => l.component === "cooler-block")
+        && visibleLayers.some(l => l.component === "radiator-fans"));
       if (caseLayer || visibleLayers.length) {
         const estimated = Boolean(caseLayer && !sidePhoto && !plane && visibleLayers.length);
         drawBuildScene(canvas, caseLayer, plane, estimated, visibleLayers, showTubes ? tubes : null, assets[cooler?.id]);
@@ -640,17 +751,24 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
         : "Photo availability for your build is shown below.";
     }
 
-    const cpuCovered = !mainPhoto && canHideCooler && shown.has(cooler.id);
+    const cpuCovered = !mainPhoto && cpu && cooler && !cpuToggle.checked && shown.has(cooler.id);
     const notices = [];
     if (showTubes) notices.push("Tube routing is approximate.");
     if (cpuCovered) notices.push(cpu.short + " is under the cooler.");
+    if (!mainPhoto && cutawayToggle.checked && (selection.psu || selection.storage?.length)) {
+      notices.push("Cutaway shows the PSU and drives beneath covers; their positions are approximate.");
+    }
     if (!mainPhoto && cse && gpu && !shown.has(gpu.id) && photos[gpu.id]) {
       notices.push("Graphics card product photo below.");
     }
+    const hiddenParts = new Set(cpuCovered ? [cpu.id] : []);
+    if (!mainPhoto && !cutawayToggle.checked) {
+      for (const part of [selection.psu, ...(selection.storage || [])].filter(Boolean)) hiddenParts.add(part.id);
+      if (selection.psu || selection.storage?.length) notices.push("PSU and drives are behind covers. Turn on the cutaway to see them.");
+    }
+    const referenceParts = selectedParts.filter((part) => !shown.has(part.id) && !hiddenParts.has(part.id));
     coverage.textContent = notices.join(" ");
     coverage.hidden = !notices.length;
-
-    const referenceParts = selectedParts.filter((part) => !shown.has(part.id));
     if (!photoSubject || !shown.size) renderReferences(referenceParts);
     fitPreviewHeight();
     const credits = [...shown.values()];

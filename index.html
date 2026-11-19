@@ -392,6 +392,7 @@
           <label>Case color<select id="preview-case"><option value="" disabled>Choose a color</option></select></label>
           <label>Graphics card<select id="preview-gpu"><option value="" disabled>Choose a graphics card</option></select></label>
           <label class="preview-layer-toggle" hidden><input type="checkbox" id="preview-hide-cooler">Hide cooler to see CPU</label>
+          <label class="preview-layer-toggle" hidden><input type="checkbox" id="preview-cutaway" checked>Show PSU and drives through covers</label>
         </div>
         <div id="bay" aria-label="Case bay, drop parts here">
           <canvas id="preview-canvas" role="img" hidden></canvas>
@@ -426,11 +427,16 @@
     </aside>
   </div>
   <script src="photo-cutouts.js?v=2"></script>
-  <script src="ram-previews.js"></script>
-  <script src="preview.js?v=8"></script>
+  <script src="ram-previews.js?v=2"></script>
+  <script src="cooler-previews.js?v=1"></script>
+  <script src="mount-previews.js?v=1"></script>
+  <script src="preview.js?v=9"></script>
   <script src="prices.js?v=2"></script>
   <script src="part-photos.js?v=2"></script>
   <script>
+    for (const [id, photo] of Object.entries({ ...COOLER_PREVIEW_FACES, ...PART_MOUNT_FACES })) {
+      if (PART_PHOTOS[id]) PART_PHOTOS[id] = { ...PART_PHOTOS[id], src: photo.src, credit: photo.credit };
+    }
     const CATS = [
       { id: "case", label: "Case", hint: "GPU clearance checks are available for the AIR 903 MAX and H5 Flow." },
       { id: "motherboard", label: "Motherboard", hint: "Sockets on this page: AM5, AM4, LGA1851, LGA1700. AM5 and LGA1851 are DDR5. AM4 is DDR4. An LGA1700 board is checked for DDR type only when the name says DDR4 or DDR5." },

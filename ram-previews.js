@@ -1,6 +1,7 @@
 // Sampled heat-spreader rails from each kit's real source photo.
 // Basis points follow one DIMM. The renderer repeats it only in occupied slots.
 const RAM_PREVIEW_FACES = {
+  "ram-corsair-vengeance-32-gb-ddr5-5200": {"basis":[[0.208984,0.693359],[0.214844,0.71875],[0.908203,0.558594]]},
   "ram-16": {"basis":[[0.1375,0.19625],[0.1375,0.22125],[0.88125,0.19625]]},
   "ram-64c": {"basis":[[0.1375,0.32128],[0.1375,0.34628],[0.88125,0.25361]]},
   "ram-64g": {"basis":[[0.1375,0.32562],[0.1375,0.35063],[0.88125,0.32562]]},
