@@ -197,6 +197,7 @@
       background: #0c0e0d;
     }
     .stage h2 { margin: 0; font-size: 17px; }
+    .preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .preview-modes { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
     .preview-modes button[aria-pressed="true"] { border-color: var(--copper); background: #241c16; }
     .photo-grid {
@@ -378,7 +379,7 @@
       <div id="parts"></div>
     </section>
     <section class="stage" aria-labelledby="preview-title">
-      <h2 id="preview-title">Build preview</h2>
+      <div class="preview-heading"><h2 id="preview-title">Build preview</h2><button type="button" class="cmd" id="preview-save-image" disabled>Save build image</button></div>
       <div class="preview-modes" role="group" aria-label="Preview view">
         <button class="cmd" id="show-assembled" type="button" aria-controls="assembled-panel" aria-pressed="true">Assembled</button>
         <button class="cmd" id="show-photos" type="button" aria-controls="photos-panel" aria-pressed="false">Part photos</button>
@@ -430,13 +431,17 @@
   <script src="ram-previews.js?v=2"></script>
   <script src="cooler-previews.js?v=1"></script>
   <script src="mount-previews.js?v=1"></script>
-  <script src="preview.js?v=9"></script>
+  <script src="board-previews.js?v=1"></script>
+  <script src="projection.js?v=1"></script>
+  <script src="render-images.js?v=1"></script>
+  <script src="preview.js?v=10"></script>
   <script src="prices.js?v=2"></script>
   <script src="part-photos.js?v=2"></script>
   <script>
     for (const [id, photo] of Object.entries({ ...COOLER_PREVIEW_FACES, ...PART_MOUNT_FACES })) {
       if (PART_PHOTOS[id]) PART_PHOTOS[id] = { ...PART_PHOTOS[id], src: photo.src, credit: photo.credit };
     }
+    for (const photo of Object.values(PART_PHOTOS)) photo.src = LOCAL_RENDER_IMAGES[photo.src] || photo.src;
     const CATS = [
       { id: "case", label: "Case", hint: "GPU clearance checks are available for the AIR 903 MAX and H5 Flow." },
       { id: "motherboard", label: "Motherboard", hint: "Sockets on this page: AM5, AM4, LGA1851, LGA1700. AM5 and LGA1851 are DDR5. AM4 is DDR4. An LGA1700 board is checked for DDR type only when the name says DDR4 or DDR5." },
@@ -849,8 +854,8 @@
       {"id":"case-lian-li-o11-dynamic-mini-v2","cat":"case","rank":17,"name":"Lian Li O11 Dynamic Mini V2","short":"Lian Li O11 Dynam…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-fractal-design-north","cat":"case","rank":18,"name":"Fractal Design North","short":"Fractal Design No…","form":["atx","matx","itx"],"radiatorTopMm":240,"radiatorFrontMm":360,"spec":"ATX Mid Tower"},
       {"id":"case-phanteks-eclipse-g370a","cat":"case","rank":19,"name":"Phanteks Eclipse G370A","short":"Phanteks Eclipse…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
-      {"id":"case-cooler-master-masterbox-q300l","cat":"case","rank":20,"name":"Cooler Master MasterBox Q300L","short":"Cooler Master Mas…","form":["itx"],"spec":"MicroATX Mini Tower"},
-      {"id":"case-lian-li-a3-matx","cat":"case","rank":21,"name":"Lian Li A3-mATX","short":"Lian Li A3-mATX","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-cooler-master-masterbox-q300l","cat":"case","rank":20,"name":"Cooler Master MasterBox Q300L","short":"Cooler Master Mas…","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-lian-li-a3-matx","cat":"case","rank":21,"name":"Lian Li A3-mATX","short":"Lian Li A3-mATX","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-fractal-design-north-xl","cat":"case","rank":22,"name":"Fractal Design North XL","short":"Fractal Design No…","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
       {"id":"case-be-quiet-shadow-base-800-dx","cat":"case","rank":23,"name":"be quiet! Shadow Base 800 DX","short":"be quiet! Shadow…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-phanteks-xt-pro-ultra","cat":"case","rank":24,"name":"Phanteks XT PRO ULTRA","short":"Phanteks XT PRO U…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
@@ -858,14 +863,14 @@
       {"id":"case-lian-li-o11d-evo-rgb","cat":"case","rank":26,"name":"Lian Li O11D EVO RGB","short":"Lian Li O11D EVO…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-corsair-3500x-rs-r-argb","cat":"case","rank":27,"name":"Corsair 3500X RS-R ARGB","short":"Corsair 3500X RS-…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-lian-li-o11-dynamic-mini-v2-flow","cat":"case","rank":28,"name":"Lian Li O11 Dynamic Mini V2 Flow","short":"Lian Li O11 Dynam…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
-      {"id":"case-corsair-4000d-airflow","cat":"case","rank":29,"name":"Corsair 4000D Airflow","short":"Corsair 4000D Air…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
+      {"id":"case-corsair-4000d-airflow","cat":"case","rank":29,"name":"Corsair 4000D Airflow","short":"Corsair 4000D Air…","form":["atx","matx","itx"],"spec":"ATX Mid Tower","radiatorTopMm":280,"radiatorFrontMm":360,"gpuClear":360},
       {"id":"case-lian-li-lancool-217","cat":"case","rank":30,"name":"Lian Li LANCOOL 217","short":"Lian Li LANCOOL 2…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-nzxt-s5-rgb","cat":"case","rank":31,"name":"NZXT S5 RGB","short":"NZXT S5 RGB","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-lian-li-vector-v100r-mini","cat":"case","rank":32,"name":"Lian Li VECTOR V100R MINI","short":"Lian Li VECTOR V1…","form":["matx","itx"],"gpuClear":415,"radiatorTopMm":360,"radiatorFrontMm":0,"spec":"MicroATX Mid Tower · 415 mm GPU"},
       {"id":"case-lian-li-lancool-207","cat":"case","rank":33,"name":"Lian Li Lancool 207","short":"Lian Li Lancool 2…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-nzxt-h9-flow-2025","cat":"case","rank":34,"name":"NZXT H9 Flow (2025)","short":"NZXT H9 Flow (202…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
-      {"id":"case-zalman-cubix","cat":"case","rank":35,"name":"Zalman CUBIX","short":"Zalman CUBIX","form":["itx"],"spec":"MicroATX Mini Tower"},
-      {"id":"case-okinos-aqua-uno","cat":"case","rank":36,"name":"Okinos AQUA UNO","short":"Okinos AQUA UNO","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-zalman-cubix","cat":"case","rank":35,"name":"Zalman CUBIX","short":"Zalman CUBIX","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-okinos-aqua-uno","cat":"case","rank":36,"name":"Okinos AQUA UNO","short":"Okinos AQUA UNO","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-fractal-design-pop-xl-air","cat":"case","rank":37,"name":"Fractal Design Pop XL Air","short":"Fractal Design Po…","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
       {"id":"case-nzxt-h6-flow","cat":"case","rank":38,"name":"NZXT H6 Flow","short":"NZXT H6 Flow","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-msi-mag-forge-321r-airflow","cat":"case","rank":39,"name":"MSI MAG FORGE 321R AIRFLOW","short":"MSI MAG FORGE 321…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
@@ -877,7 +882,7 @@
       {"id":"case-montech-air-100-argb","cat":"case","rank":45,"name":"Montech AIR 100 ARGB","short":"Montech AIR 100 A…","form":["matx","itx"],"spec":"MicroATX Mid Tower"},
       {"id":"case-fractal-design-terra","cat":"case","rank":46,"name":"Fractal Design Terra","short":"Fractal Design Te…","form":["itx"],"spec":"Mini ITX Desktop"},
       {"id":"case-hyte-y70","cat":"case","rank":47,"name":"HYTE Y70","short":"HYTE Y70","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
-      {"id":"case-lian-li-b4-matx-mesh","cat":"case","rank":48,"name":"Lian Li B4-mATX Mesh","short":"Lian Li B4-mATX M…","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-lian-li-b4-matx-mesh","cat":"case","rank":48,"name":"Lian Li B4-mATX Mesh","short":"Lian Li B4-mATX M…","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-jonsbo-d32-pro","cat":"case","rank":49,"name":"Jonsbo D32 PRO","short":"Jonsbo D32 PRO","form":["matx","itx"],"spec":"MicroATX Desktop"},
       {"id":"case-fractal-design-meshify-c","cat":"case","rank":50,"name":"Fractal Design Meshify C","short":"Fractal Design Me…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-cooler-master-masterbox-nr200","cat":"case","rank":51,"name":"Cooler Master MasterBox NR200","short":"Cooler Master Mas…","form":["itx"],"spec":"Mini ITX Desktop"},
@@ -889,12 +894,12 @@
       {"id":"case-asus-rog-cronox-argb","cat":"case","rank":57,"name":"Asus ROG Cronox ARGB","short":"Asus ROG Cronox A…","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
       {"id":"case-zalman-raven","cat":"case","rank":58,"name":"Zalman Raven","short":"Zalman Raven","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-antec-c5-argb","cat":"case","rank":59,"name":"Antec C5 ARGB","short":"Antec C5 ARGB","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
-      {"id":"case-lian-li-b4-matx-wood","cat":"case","rank":60,"name":"Lian Li B4-mATX Wood","short":"Lian Li B4-mATX W…","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-lian-li-b4-matx-wood","cat":"case","rank":60,"name":"Lian Li B4-mATX Wood","short":"Lian Li B4-mATX W…","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-silverstone-flp02","cat":"case","rank":61,"name":"Silverstone FLP02","short":"Silverstone FLP02","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-noctua-antec-flux-pro-noctua-edition","cat":"case","rank":62,"name":"Noctua Antec Flux Pro Noctua Edition","short":"Noctua Antec Flux…","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
       {"id":"case-jonsbo-nv10","cat":"case","rank":63,"name":"Jonsbo NV10","short":"Jonsbo NV10","form":["itx"],"spec":"Mini ITX Desktop"},
       {"id":"case-montech-air-903-base","cat":"case","rank":64,"name":"Montech AIR 903 BASE","short":"Montech AIR 903 B…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
-      {"id":"case-asus-prime-ap201","cat":"case","rank":65,"name":"Asus Prime AP201","short":"Asus Prime AP201","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-asus-prime-ap201","cat":"case","rank":65,"name":"Asus Prime AP201","short":"Asus Prime AP201","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-montech-king-95-pro","cat":"case","rank":66,"name":"Montech KING 95 PRO","short":"Montech KING 95 P…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-phanteks-ex5","cat":"case","rank":67,"name":"Phanteks EX5","short":"Phanteks EX5","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-antec-flux-pro","cat":"case","rank":68,"name":"Antec FLUX PRO","short":"Antec FLUX PRO","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
@@ -907,13 +912,13 @@
       {"id":"case-jonsbo-c6-itx","cat":"case","rank":75,"name":"Jonsbo C6-ITX","short":"Jonsbo C6-ITX","form":["itx"],"spec":"Mini ITX Desktop"},
       {"id":"case-jonsbo-jonsplus-z20","cat":"case","rank":76,"name":"Jonsbo Jonsplus Z20","short":"Jonsbo Jonsplus Z…","form":["matx","itx"],"spec":"MicroATX Desktop"},
       {"id":"case-antec-c8","cat":"case","rank":77,"name":"Antec C8","short":"Antec C8","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
-      {"id":"case-thermaltake-s100","cat":"case","rank":78,"name":"Thermaltake S100","short":"Thermaltake S100","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-thermaltake-s100","cat":"case","rank":78,"name":"Thermaltake S100","short":"Thermaltake S100","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-be-quiet-pure-base-501-airflow","cat":"case","rank":79,"name":"be quiet! Pure Base 501 Airflow","short":"be quiet! Pure Ba…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-lian-li-lancool-216","cat":"case","rank":80,"name":"Lian Li LANCOOL 216","short":"Lian Li LANCOOL 2…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-fractal-design-ridge-pcie-4-0","cat":"case","rank":81,"name":"Fractal Design Ridge PCIe 4.0","short":"Fractal Design Ri…","form":["itx"],"spec":"Mini ITX Tower"},
       {"id":"case-deepcool-cg530-4f","cat":"case","rank":82,"name":"Deepcool CG530 4F","short":"Deepcool CG530 4F","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-fractal-design-north-xl-mesh","cat":"case","rank":83,"name":"Fractal Design North XL Mesh","short":"Fractal Design No…","form":["eatx","atx","matx","itx"],"spec":"ATX Full Tower"},
-      {"id":"case-lian-li-o11-vision-m","cat":"case","rank":84,"name":"Lian Li O11 VISION-M","short":"Lian Li O11 VISIO…","form":["itx"],"spec":"MicroATX Mini Tower"},
+      {"id":"case-lian-li-o11-vision-m","cat":"case","rank":84,"name":"Lian Li O11 VISION-M","short":"Lian Li O11 VISIO…","form":["matx","itx"],"spec":"MicroATX Mini Tower"},
       {"id":"case-lian-li-lancool-217-inf","cat":"case","rank":85,"name":"Lian Li LANCOOL 217 INF","short":"Lian Li LANCOOL 2…","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-hyte-y50-rgb","cat":"case","rank":86,"name":"HYTE Y50 RGB","short":"HYTE Y50 RGB","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
       {"id":"case-zalman-s4","cat":"case","rank":87,"name":"Zalman S4","short":"Zalman S4","form":["atx","matx","itx"],"spec":"ATX Mid Tower"},
@@ -1183,7 +1188,7 @@
     let state = {};
     let openCat = null;
     let openBrand = "";
-    let photosOnly = false;
+    let photosOnly = true;
     const BRAND_PREFIXES = ["Cooler Master", "Western Digital", "Silicon Power", "Fractal Design", "Lian Li", "be quiet!", "Super Flower"];
     function brandOf(part) {
       const name = part.name || "";
@@ -1341,7 +1346,7 @@
       const partsEl = document.getElementById("parts");
       const y = partsEl.scrollTop;
       document.getElementById("catbar").innerHTML = CATS.map((cat) => {
-        const count = PARTS.filter((p) => p.cat === cat.id).length;
+        const count = PARTS.filter((p) => p.cat === cat.id && (!photosOnly || PART_PHOTOS[p.id])).length;
         const chosen = chosenLabel(cat.id);
         const open = openCat === cat.id;
         return '<button type="button" class="cat-toggle" data-cat="' + cat.id + '" aria-expanded="' + open + '">' +
@@ -1518,7 +1523,7 @@
     const previewReferences = document.getElementById("preview-references");
     const otherPhotos = document.getElementById("preview-other-photos");
     const renderBay = createBuildPreview({
-      assets: PREVIEW_ASSETS, photos: PART_PHOTOS, lookupPart: byId, seatPart: seat, selectParts: selectedParts,
+      assets: PREVIEW_ASSETS, photos: PART_PHOTOS, lookupPart: byId, seatPart: seat, selectParts: selectedParts, getSelection: selected,
       renderReferences: (parts) => {
         previewReferences.hidden = parts.length === 0;
         otherPhotos.innerHTML = photoCards(parts);
@@ -1548,6 +1553,7 @@
     }
 
     function showPreviewPhotos(active) {
+      document.getElementById("preview-save-image").hidden = active;
       assembledPanel.hidden = active;
       photosPanel.hidden = !active;
       showAssembled.setAttribute("aria-pressed", String(!active));
@@ -1582,6 +1588,7 @@
     }
 
     function draftWith(part) {
+      if (!PART_PHOTOS[part.id]) return { error: "A product image is not available for this model. Choose a pictured model for the build image." };
       const draft = {
         case: state.case || null,
         motherboard: state.motherboard || null,

@@ -21,41 +21,49 @@ const BOARD_LAYOUTS = {
   }
 };
 const BOARD_SIZES = { atx: [244, 305], eatx: [277, 305], matx: [244, 244], itx: [170, 170] };
-// Rear-top, front-top, and rear-bottom of the motherboard footprint in
+// Rear-top, front-top, rear-bottom, and front-bottom of the motherboard footprint.
 // selected case photos. Points use the original image's normalized coordinates.
 const CASE_PHOTO_PLANES = {
-  "case-montech-xr": [[.25, .30], [.53, .225], [.25, .695]],
-  "case-phanteks-xt-pro": [[.285, .29], [.58, .19], [.28, .74]],
-  "case-lian-li-vector-v100r": [[.29, .31], [.62, .23], [.285, .73]],
-  "case-lian-li-o11-vision-compact": [[.33, .35], [.61, .25], [.33, .79]],
-  "case-nzxt-h5-flow-2024": [[.30, .255], [.60, .22], [.30, .61]],
-  "case-lian-li-o11-dynamic-mini-v2": [[.315, .28], [.625, .19], [.315, .77]],
-  "case-lian-li-o11d-evo-rgb": [[.29, .305], [.56, .24], [.285, .79]],
-  "case-corsair-3500x-rs-r-argb": [[.34, .29], [.60, .245], [.34, .715]],
-  "case-nzxt-h9-flow-2025": [[.28, .37], [.54, .29], [.275, .73]],
-  "case-lian-li-lancool-216": [[.35, .32], [.505, .265], [.35, .66]],
-  "case-fractal-design-north": [[.365, .255], [.52, .19], [.285, .735]],
-  "case-corsair-frame-4000d-rs-argb": [[.34, .23], [.475, .165], [.25, .675]],
-  "case-phanteks-eclipse-g370a": [[.375, .36], [.54, .31], [.335, .665]],
-  "case-phanteks-xt-pro-ultra": [[.38, .328], [.55, .268], [.305, .657]],
-  "case-lian-li-o11-dynamic-mini-v2-flow": [[.295, .285], [.52, .235], [.245, .805]],
-  "case-corsair-4000d-airflow": [[.405, .275], [.475, .223], [.315, .654]],
-  "case-lian-li-lancool-217": [[.378, .305], [.537, .252], [.293, .678]],
-  "case-lian-li-lancool-207": [[.385, .28], [.47, .248], [.30, .734]],
-  "case-fractal-design-pop-xl-air": [[.34, .285], [.505, .217], [.235, .735]],
-  "case-lian-li-o11-dynamic-evo-xl": [[.297, .257], [.54, .186], [.232, .765]],
-  "case-lian-li-lancool-216-rgb": [[.378, .368], [.51, .322], [.321, .699]],
-  "case-nzxt-h3-flow": [[.36, .38], [.55, .27], [.295, .745]],
-  "case-lian-li-vector-v100": [[.278, .274], [.596, .195], [.243, .779]],
-  "case-montech-air-903-base": [[.375, .292], [.493, .230], [.315, .708]],
-  "case-corsair-frame-4000d": [[.34, .23], [.475, .165], [.25, .675]],
-  "case-nzxt-h9-flow-rgb-2025": [[.36, .352], [.544, .273], [.286, .779]],
-  "case-corsair-3500x": [[.293, .22], [.548, .171], [.244, .681]],
-  "case-fractal-design-pop-air": [[.322, .26], [.5, .20], [.252, .73]],
-  "case-antec-c8": [[.302, .259], [.542, .212], [.26, .819]],
-  "case-deepcool-cg530-4f": [[.302, .329], [.533, .207], [.247, .8]]
+  "case-montech-xr": [[0.25,0.3],[0.53,0.225],[0.25,0.695],[0.53,0.77]],
+  "case-phanteks-xt-pro": [[0.285,0.29],[0.58,0.19],[0.285,0.74],[0.58,0.84]],
+  "case-lian-li-vector-v100r": [[0.29,0.31],[0.62,0.23],[0.29,0.73],[0.62,0.81]],
+  "case-lian-li-o11-vision-compact": [[0.33,0.35],[0.61,0.25],[0.33,0.79],[0.61,0.89]],
+  "case-nzxt-h5-flow-2024": [[0.3,0.255],[0.6,0.22],[0.3,0.61],[0.6,0.645]],
+  "case-lian-li-o11-dynamic-mini-v2": [[0.315,0.28],[0.625,0.19],[0.315,0.77],[0.625,0.86]],
+  "case-lian-li-o11d-evo-rgb": [[0.29,0.305],[0.56,0.24],[0.29,0.79],[0.56,0.855]],
+  "case-corsair-3500x-rs-r-argb": [[0.34,0.29],[0.6,0.245],[0.34,0.715],[0.6,0.76]],
+  "case-nzxt-h9-flow-2025": [[0.28,0.37],[0.54,0.29],[0.28,0.73],[0.54,0.81]],
+  "case-lian-li-lancool-216": [[0.35,0.32],[0.505,0.265],[0.35,0.66],[0.505,0.715]],
+  "case-fractal-design-north": [[0.365,0.255],[0.52,0.19],[0.365,0.735],[0.52,0.8]],
+  "case-corsair-frame-4000d-rs-argb": [[0.34,0.23],[0.475,0.165],[0.34,0.675],[0.475,0.74]],
+  "case-phanteks-eclipse-g370a": [[0.375,0.36],[0.54,0.31],[0.375,0.665],[0.54,0.715]],
+  "case-phanteks-xt-pro-ultra": [[0.38,0.328],[0.55,0.268],[0.38,0.657],[0.55,0.717]],
+  "case-lian-li-o11-dynamic-mini-v2-flow": [[0.295,0.285],[0.52,0.235],[0.295,0.805],[0.52,0.855]],
+  "case-corsair-4000d-airflow": [[0.405,0.275],[0.475,0.223],[0.405,0.654],[0.475,0.706]],
+  "case-lian-li-lancool-217": [[0.378,0.305],[0.537,0.252],[0.378,0.678],[0.537,0.731]],
+  "case-lian-li-lancool-207": [[0.385,0.28],[0.47,0.248],[0.385,0.734],[0.47,0.766]],
+  "case-fractal-design-pop-xl-air": [[0.34,0.285],[0.505,0.217],[0.34,0.735],[0.505,0.803]],
+  "case-lian-li-o11-dynamic-evo-xl": [[0.297,0.257],[0.54,0.186],[0.297,0.765],[0.54,0.836]],
+  "case-lian-li-lancool-216-rgb": [[0.378,0.368],[0.51,0.322],[0.378,0.699],[0.51,0.745]],
+  "case-nzxt-h3-flow": [[0.36,0.38],[0.55,0.27],[0.36,0.745],[0.55,0.855]],
+  "case-lian-li-vector-v100": [[0.278,0.274],[0.596,0.195],[0.278,0.779],[0.596,0.858]],
+  "case-montech-air-903-base": [[0.375,0.292],[0.493,0.23],[0.375,0.708],[0.493,0.77]],
+  "case-corsair-frame-4000d": [[0.34,0.23],[0.475,0.165],[0.34,0.675],[0.475,0.74]],
+  "case-nzxt-h9-flow-rgb-2025": [[0.36,0.352],[0.544,0.273],[0.36,0.779],[0.544,0.858]],
+  "case-corsair-3500x": [[0.293,0.22],[0.548,0.171],[0.293,0.681],[0.548,0.73]],
+  "case-fractal-design-pop-air": [[0.322,0.26],[0.5,0.2],[0.322,0.73],[0.5,0.79]],
+  "case-antec-c8": [[0.302,0.259],[0.542,0.212],[0.302,0.819],[0.542,0.866]],
+  "case-deepcool-cg530-4f": [[0.302,0.329],[0.533,0.207],[0.302,0.8],[0.533,0.922]]
 };
 const CASE_INTERIOR_PHOTOS = {
+  "case-corsair-4000d-airflow": {
+    src: "img/cases/corsair-4000d-airflow-side.webp",
+    credit: "https://www.corsair.com/ww/en/p/pc-cases/cc-9011200-ww/40",
+    trim: [0, 0, 1, 1],
+    plane: [[.084483, .110749], [.57931, .110749], [.084483, .69544], [.57931, .69544]],
+    straightOn: true,
+    partBrightness: .90
+  },
   "case-h5": {
     src: "https://i.pepita.hu/images/product/3772848/gehause-nzxt-midi-h5-flow-edition-mattschwarz-cc-h51fb-01_47514956_1200x630.jpg",
     credit: "https://pepita.com/de/computergehause-c2782/gehause-nzxt-midi-h5-flow-edition-mattschwarz-cc-h51fb-01-p3772848",
@@ -195,7 +203,7 @@ function loadPreviewImage(src) {
       const timer = setTimeout(() => resolve(null), 8000);
       image.onload = () => { clearTimeout(timer); resolve(image); };
       image.onerror = () => { clearTimeout(timer); resolve(null); };
-      image.src = src;
+      image.src = typeof LOCAL_RENDER_IMAGES !== "undefined" ? LOCAL_RENDER_IMAGES[src] || src : src;
     });
     previewImages.set(src, pending);
     pending.then((image) => { if (!image) previewImages.delete(src); });
@@ -204,6 +212,7 @@ function loadPreviewImage(src) {
 }
 
 async function loadCatalogImage(src, preserveThumbnailFrame = false) {
+  if (!src.startsWith("https:") || (typeof LOCAL_RENDER_IMAGES !== "undefined" && LOCAL_RENDER_IMAGES[src])) return loadPreviewImage(src);
   const original = src.replace(/^(https:\/\/cdna\.pcpartpicker\.com\/static\/forever\/images\/product\/[a-f\d]{32})\.256p\.jpg$/, "$1.jpg");
   if (original === src) return loadPreviewImage(src);
 
@@ -306,7 +315,13 @@ function drawPreviewLayer(context, { asset, image, source, frame, rotate }) {
     context.ellipse(.5, .5, .5, .5, 0, 0, Math.PI * 2);
     context.clip();
   }
-  if (asset.basis) {
+  if (asset.quad) {
+    const sample = quadProjector(asset.quad);
+    warpPhoto(context, image, (u, v) => {
+      const point = sample(u, v);
+      return [point[0] * image.naturalWidth, point[1] * image.naturalHeight];
+    }, (u, v) => [u, v], 10);
+  } else if (asset.basis) {
     // Rectify the sampled face of an angled product image into the side view.
     const [[ox, oy], [rx, ry], [bx, by]] = asset.basis;
     const sourceTransform = new DOMMatrix([rx - ox, ry - oy, bx - ox, by - oy, ox, oy]).inverse();
@@ -353,7 +368,7 @@ function sceneFrame(layers) {
 
 function previewLayers(selection, assets, photos, hideCooler, radiatorLimits, showHiddenParts = true) {
   const layers = [];
-  const generic = (part) => catalogPreview(part, photos);
+  const generic = (part) => BOARD_PREVIEW_FACES[part?.id] || catalogPreview(part, photos);
   function add(part, bounds, asset = assets[part?.id] || generic(part), component) {
     if (part && asset) layers.push({ part, asset, bounds, component });
   }
@@ -491,6 +506,18 @@ function projectCasePlane(context, caseLayer, [[ox, oy], [rx, ry], [bx, by]], sp
     x + (ox - left) * rawWidth, y + (oy - top) * rawHeight);
 }
 
+function estimatedCasePlane(caseLayer, cse) {
+  const [left, top, width, height] = caseLayer.asset.cutout?.[0] || [0, 0, 1, 1];
+  const rear = left + width * .19, front = left + width * .67;
+  const upper = top + height * .18, lower = top + height * .71;
+  const pitch = height * .035;
+  const plane = [[rear, upper + pitch], [front, upper], [rear, lower - pitch], [front, lower]];
+  const form = /MicroATX/i.test(cse.spec) ? "matx" : /Mini ITX/i.test(cse.spec) ? "itx"
+    : ["eatx", "atx", "matx", "itx"].find(value => (cse.form || []).includes(value));
+  plane.span = BOARD_SIZES[form] || BOARD_SIZES.atx;
+  return plane;
+}
+
 function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump) {
   let frame;
   if (caseLayer) {
@@ -511,8 +538,12 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
     if (caseLayer.asset.partBrightness) {
       context.filter = "brightness(" + caseLayer.asset.partBrightness + ")";
     }
+    if (plane?.length === 4 && !quadProjector(plane).affine) {
+      drawPerspectiveAssembly(context, caseLayer, plane, layers, tubes);
+      return;
+    }
     if (plane) {
-      projectCasePlane(context, caseLayer, plane, 244, 305);
+      projectCasePlane(context, caseLayer, plane, ...(plane.span || [244, 305]));
       context.translate(-44, -55);
     } else if (estimated) {
       const [partsX, partsY, partsWidth, partsHeight] = sceneFrame(layers);
@@ -549,12 +580,51 @@ function drawBuildScene(canvas, caseLayer, plane, estimated, layers, tubes, pump
   }
 }
 
+function drawPerspectiveAssembly(context, caseLayer, plane, layers, tubes) {
+  const bounds = sceneFrame(layers);
+  const x0 = Math.min(0, bounds[0]), y0 = Math.min(0, bounds[1]);
+  const width = Math.max(445, bounds[0] + bounds[2]) - x0;
+  const height = Math.max(455, bounds[1] + bounds[3]) - y0;
+  const sourceCanvas = document.createElement("canvas");
+  const sourceContext = framePreviewCanvas(sourceCanvas, [x0, y0, width, height]);
+  for (const layer of layers) {
+    if (tubes && layer.component === "cooler-block") drawCoolerTubes(sourceContext, tubes);
+    drawPreviewLayer(sourceContext, layer);
+  }
+  const project = quadProjector(plane);
+  const [spanX, spanY] = plane.span || [244, 305];
+  const [fx, fy, fw, fh] = caseLayer.frame;
+  const [left, top, cropW, cropH] = caseLayer.asset.cutout?.[0] || [0, 0, 1, 1];
+  const destination = (u, v) => {
+    const [x, y] = project((x0 + u * width - 44) / spanX, (y0 + v * height - 55) / spanY);
+    return [fx + (x - left) * fw / cropW, fy + (y - top) * fh / cropH];
+  };
+  const corners = layers.flatMap(layer => {
+    const [x, y, w, h] = layer.frame;
+    return [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].map(([px,py]) => destination((px-x0)/width,(py-y0)/height));
+  });
+  const minX = Math.min(...corners.map(p => p[0])), maxX = Math.max(...corners.map(p => p[0]));
+  const minY = Math.min(...corners.map(p => p[1])), maxY = Math.max(...corners.map(p => p[1]));
+  const insetX = fx + fw * .065, insetY = fy + fh * .11;
+  const availableW = fw * .87, availableH = fh * .78;
+  const fit = Math.min(1, availableW / (maxX - minX), availableH / (maxY - minY));
+  const shiftX = Math.max(insetX - minX * fit, Math.min(0, insetX + availableW - maxX * fit));
+  const shiftY = Math.max(insetY - minY * fit, Math.min(0, insetY + availableH - maxY * fit));
+  warpPhoto(context, sourceCanvas,
+    (u, v) => [u * sourceCanvas.width, v * sourceCanvas.height],
+    (u, v) => {
+      const [x, y] = destination(u, v);
+      return [x * fit + shiftX, y * fit + shiftY];
+    });
+}
+
 function frameProductPhoto(part, photo, image) {
   const crop = photo.trim || PHOTO_CUTOUTS[part.id]?.[0];
   // Catalog trims were measured on the square thumbnail. A non-square
   // original already has its own frame and uses its natural dimensions.
   let asset = photo;
-  if (crop && (image.src === photo.src || image.naturalWidth === image.naturalHeight)) {
+  const loadedSource = typeof LOCAL_RENDER_IMAGES !== "undefined" ? LOCAL_RENDER_IMAGES[photo.src] || photo.src : photo.src;
+  if (crop && (image.src === new URL(loadedSource, document.baseURI).href || image.naturalWidth === image.naturalHeight)) {
     const [x, y, width, height] = crop;
     const left = Math.max(0, x - .02);
     const top = Math.max(0, y - .02);
@@ -566,7 +636,7 @@ function frameProductPhoto(part, photo, image) {
   return framePreviewLayer(asset, image, [0, 0, width, height]);
 }
 
-function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts, renderReferences }) {
+function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts, getSelection, renderReferences }) {
   const canvas = document.getElementById("preview-canvas");
   const bay = canvas.parentElement;
   const stage = bay.closest(".stage");
@@ -583,6 +653,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
   const cpuToggle = document.getElementById("preview-hide-cooler");
   const cutawayToggle = document.getElementById("preview-cutaway");
   const subjectSelect = document.getElementById("preview-subject");
+  const saveImage = document.getElementById("preview-save-image");
   let revision = 0;
   let activeSelection;
   let activeParts = "";
@@ -606,6 +677,24 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
   cpuToggle.addEventListener("change", () => renderPreview(activeSelection));
   cutawayToggle.addEventListener("change", () => renderPreview(activeSelection));
   subjectSelect.addEventListener("change", () => renderPreview(activeSelection));
+  saveImage.addEventListener("click", async () => {
+    subjectSelect.value = "";
+    await renderPreview(getSelection ? getSelection() : activeSelection);
+    if (canvas.hidden || saveImage.disabled) return;
+    try {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Image encoding failed");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "pc-build.png";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      coverage.textContent = "The build image could not be saved. Reload the page and try again.";
+      coverage.hidden = false;
+    }
+  });
 
   async function renderPreview(selection) {
     activeSelection = selection;
@@ -656,6 +745,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
     }
 
     canvas.hidden = true;
+    saveImage.disabled = true;
     message.hidden = false;
     coverage.hidden = true;
     sources.hidden = true;
@@ -694,7 +784,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
         if (currentRevision !== revision) return;
       }
       const sidePhoto = renderedCase === caseAsset;
-      const plane = renderedCase?.plane || CASE_PHOTO_PLANES[caseId];
+      let plane = renderedCase?.plane || CASE_PHOTO_PLANES[caseId];
       let caseLayer;
       if (caseImage) {
         caseLayer = sidePhoto ? framePreviewLayer(renderedCase, caseImage, [0, 0, CASE_WIDTH, CASE_HEIGHT])
@@ -711,9 +801,10 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
         && visibleLayers.some(l => l.component === "radiator-fans"));
       if (caseLayer || visibleLayers.length) {
         const estimated = Boolean(caseLayer && !sidePhoto && !plane && visibleLayers.length);
+        if (estimated) plane = estimatedCasePlane(caseLayer, cse);
         drawBuildScene(canvas, caseLayer, plane, estimated, visibleLayers, showTubes ? tubes : null, assets[cooler?.id]);
         const names = [...shown.values()].map(({ part }) => part.name).join(", ");
-        if (estimated) caption.textContent = "Case and parts shown together with estimated mounting positions.";
+        if (estimated) caption.textContent = "Estimated cutaway layout from product photos. Verify dimensions and clearances for this case.";
         else if (!caseLayer && interiorPhoto?.straightOn) {
           caption.textContent = "Parts layout. The straight-on case photo couldn’t load.";
         } else if (caseLayer && renderedCase?.straightOn && visibleLayers.length) {
@@ -743,6 +834,7 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
 
     canvas.classList.toggle("product-photo", Boolean(mainPhoto || hasPhotoBackdrop));
     canvas.hidden = shown.size === 0;
+    saveImage.disabled = canvas.hidden;
     message.hidden = !canvas.hidden;
     if (canvas.hidden) {
       if (!mainPhoto) caption.textContent = "Selected part photos";
@@ -767,6 +859,9 @@ function createBuildPreview({ assets, photos, lookupPart, seatPart, selectParts,
       if (selection.psu || selection.storage?.length) notices.push("PSU and drives are behind covers. Turn on the cutaway to see them.");
     }
     const referenceParts = selectedParts.filter((part) => !shown.has(part.id) && !hiddenParts.has(part.id));
+    const incomplete = mainPhoto ? selectedParts.some(part => !photos[part.id]) : referenceParts.length > 0;
+    saveImage.disabled = canvas.hidden || incomplete;
+    saveImage.title = incomplete ? "Some selected parts do not yet have an assembled-view image." : "Save the assembled build as one PNG image";
     coverage.textContent = notices.join(" ");
     coverage.hidden = !notices.length;
     if (!photoSubject || !shown.size) renderReferences(referenceParts);
